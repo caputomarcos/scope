@@ -84,6 +84,7 @@ func (n Nodes) Merge(other Nodes) Nodes {
 // given node in a given topology, along with the edges emanating from the
 // node and metadata about those edges.
 type Node struct {
+	Rank      int           `json:"rank"`
 	Metadata  Metadata      `json:"metadata,omitempty"`
 	Counters  Counters      `json:"counters,omitempty"`
 	Sets      Sets          `json:"sets,omitempty"`
@@ -111,6 +112,12 @@ func MakeNode() Node {
 // MakeNodeWith creates a new Node with the supplied map.
 func MakeNodeWith(m map[string]string) Node {
 	return MakeNode().WithMetadata(m)
+}
+
+func (n Node) WithRank(r int) Node {
+	result := n.Copy()
+	result.Rank = r
+	return result
 }
 
 // WithMetadata returns a fresh copy of n, with Metadata m merged in.
@@ -189,6 +196,7 @@ func (n Node) WithLatest(k string, ts time.Time, v string) Node {
 // Copy returns a value copy of the Node.
 func (n Node) Copy() Node {
 	cp := MakeNode()
+	cp.Rank = n.Rank
 	cp.Metadata = n.Metadata.Copy()
 	cp.Counters = n.Counters.Copy()
 	cp.Sets = n.Sets.Copy()
@@ -203,16 +211,21 @@ func (n Node) Copy() Node {
 // Merge mergses the individual components of a node and returns a
 // fresh node.
 func (n Node) Merge(other Node) Node {
-	cp := n.Copy()
-	cp.Metadata = cp.Metadata.Merge(other.Metadata)
-	cp.Counters = cp.Counters.Merge(other.Counters)
-	cp.Sets = cp.Sets.Merge(other.Sets)
-	cp.Adjacency = cp.Adjacency.Merge(other.Adjacency)
-	cp.Edges = cp.Edges.Merge(other.Edges)
-	cp.Controls = cp.Controls.Merge(other.Controls)
-	cp.Latest = cp.Latest.Merge(other.Latest)
-	cp.Metrics = cp.Metrics.Merge(other.Metrics)
-	return cp
+	var a, b Node
+	if n.Rank > other.Rank {
+		a, b = other.WithRank(n.Rank), n
+	} else {
+		a, b = n.WithRank(other.Rank), other
+	}
+	a.Metadata = a.Metadata.Merge(b.Metadata)
+	a.Counters = a.Counters.Merge(b.Counters)
+	a.Sets = a.Sets.Merge(b.Sets)
+	a.Adjacency = a.Adjacency.Merge(b.Adjacency)
+	a.Edges = a.Edges.Merge(b.Edges)
+	a.Controls = a.Controls.Merge(b.Controls)
+	a.Latest = a.Latest.Merge(b.Latest)
+	a.Metrics = a.Metrics.Merge(b.Metrics)
+	return a
 }
 
 // Metadata is a string->string map.
@@ -317,6 +330,21 @@ func (s StringSet) Add(strs ...string) StringSet {
 		s = append(s, "")
 		copy(s[i+1:], s[i:])
 		s[i] = str
+	}
+	return s
+}
+
+// Remove removes the strings from the StringSet. Remove is the only valid way
+// to shrink a StringSet. Remove returns the StringSet to enable chaining.
+func (s StringSet) Remove(strs ...string) StringSet {
+	for _, str := range strs {
+		i := sort.Search(len(s), func(i int) bool { return s[i] >= str })
+		if i >= len(s) || s[i] != str {
+			// The list does not have the element.
+			continue
+		}
+		// has the element, remove it.
+		s = append(s[:i], s[i+1:]...)
 	}
 	return s
 }

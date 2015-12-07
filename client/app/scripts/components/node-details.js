@@ -2,6 +2,9 @@ import _ from 'lodash';
 import React from 'react';
 
 import NodeDetailsControls from './node-details/node-details-controls';
+import NodeDetailsHealth from './node-details/node-details-health';
+import NodeDetailsInfo from './node-details/node-details-info';
+import NodeDetailsRelatives from './node-details/node-details-relatives';
 import NodeDetailsTable from './node-details/node-details-table';
 import { brightenColor, getNodeColorDark } from '../utils/color-utils';
 import { resetDocumentTitle, setDocumentTitle } from '../utils/title-utils';
@@ -68,6 +71,11 @@ export default class NodeDetails extends React.Component {
     );
   }
 
+  renderTable(table) {
+    const key = _.snakeCase(table.title);
+    return <NodeDetailsTable title={table.title} key={key} rows={table.rows} isNumeric={table.numeric} />;
+  }
+
   render() {
     const details = this.props.details;
     const nodeExists = this.props.nodes && this.props.nodes.has(this.props.nodeId);
@@ -99,11 +107,11 @@ export default class NodeDetails extends React.Component {
       <div className="node-details">
         <div className="node-details-header" style={styles.header}>
           <div className="node-details-header-wrapper">
-            <h2 className="node-details-header-label truncate" title={details.label_major}>
-              {details.label_major}
+            <h2 className="node-details-header-label truncate" title={details.label}>
+              {details.label}
             </h2>
-            <div className="node-details-header-label-minor truncate" title={details.label_minor}>
-              {details.label_minor}
+            <div className="node-details-header-relatives">
+              <NodeDetailsRelatives relatives={details.parents} />
             </div>
           </div>
         </div>
@@ -114,9 +122,17 @@ export default class NodeDetails extends React.Component {
         </div>}
 
         <div className="node-details-content">
-          {details.tables.map(function(table) {
-            const key = _.snakeCase(table.title);
-            return <NodeDetailsTable title={table.title} key={key} rows={table.rows} isNumeric={table.numeric} />;
+          <div className="node-details-content-section">
+            <div className="node-details-content-section-header">Status</div>
+            <NodeDetailsHealth metrics={details.metrics} />
+            <NodeDetailsInfo metadata={details.metadata} />
+          </div>
+          {details.children && details.children.map(children => {
+            return (
+              <div className="node-details-content-section" key={children.topologyId}>
+                <NodeDetailsTable nodes={children.nodes} label={children.label} />
+              </div>
+            );
           })}
         </div>
       </div>

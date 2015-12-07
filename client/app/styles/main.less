@@ -394,11 +394,7 @@ h2 {
     .colorable;
 
     &-wrapper {
-      padding: 36px 36px 16px 36px;
-    }
-
-    &-row {
-      display: flex;
+      padding: 36px 36px 8px 36px;
     }
 
     &-label {
@@ -406,12 +402,6 @@ h2 {
       margin: 0;
       width: 348px;
       padding-top: 0;
-
-      &-minor {
-        flex: 1;
-        font-size: 120%;
-        color: @white;
-      }
     }
 
     .details-tools {
@@ -424,6 +414,44 @@ h2 {
       background-color: @background-dark-color;
     }
 
+  }
+
+  &-relatives {
+    margin-top: 4px;
+    font-size: 120%;
+    color: @white;
+
+    &-link {
+      .truncate;
+      .palable;
+      display: inline-block;
+      margin-right: 0.5em;
+      cursor: pointer;
+      text-decoration: underline;
+      opacity: 0.8;
+      max-width: 12em;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    &-more {
+      .palable;
+      padding: 0 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      opacity: 0.7;
+      font-size: 60%;
+      font-weight: bold;
+      display: inline-block;
+      position: relative;
+      top: -5px;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
   }
 
   &-controls {
@@ -492,32 +520,126 @@ h2 {
       color: @background-medium-color;
       opacity: 0.7;
     }
+
+    &-section {
+      margin: 16px 0;
+
+      &-header {
+        text-transform: uppercase;
+        font-size: 90%;
+        color: @text-tertiary-color;
+        padding: 4px 0;
+      }
+    }
+  }
+
+  &-health {
+    display: flex;
+    justify-content: space-around;
+    text-align: center;
+
+    &-item {
+      &-label {
+        color: @text-secondary-color;
+        text-transform: uppercase;
+        font-size: 80%;
+      }
+
+      &-value {
+        color: @text-secondary-color;
+        font-size: 170%;
+        padding-bottom: 0.5em;
+      }
+    }
+  }
+
+  &-info {
+    margin: 16px 0;
+
+    &-field {
+      display: flex;
+      align-items: baseline;
+
+      &-label {
+        text-align: right;
+        width: 10em;
+        color: @text-secondary-color;
+        padding: 0 0.5em 0 0;
+        white-space: nowrap;
+        text-transform: uppercase;
+        font-size: 80%;
+
+        &::after {
+          content: ':';
+        }
+      }
+
+      &-value {
+        flex: 1;
+        color: @text-color;
+      }
+    }
   }
 
   &-table {
+    margin: 24px 0;
 
-    &:last-child {
-      margin-bottom: 1em;
-    }
-
-    &-title {
+    &-header {
+      flex: 1;
+      margin-left: 0.5em;
       text-transform: uppercase;
-      margin-bottom: 0;
-      color: @text-secondary-color;
-      font-size: 100%;
-    }
+      color: @text-tertiary-color;
+      font-size: 90%;
+      text-align: center;
 
-    &-row {
-      white-space: nowrap;
-      clear: left;
-
-      &-key {
-        width: 11em;
-        float: left;
+      &-wrapper {
+        display: flex;
       }
 
-      &-value-major {
-        margin-right: 0.5em;
+      &:first-child {
+        margin-left: 0;
+        width: 40%;
+        text-align: left;
+      }
+    }
+
+    &-more {
+      .palable;
+      padding: 2px 0;
+      text-transform: uppercase;
+      cursor: pointer;
+      color: @text-secondary-color;
+      opacity: 0.7;
+      font-size: 80%;
+      font-weight: bold;
+
+      &:hover {
+        opacity: 1;
+      }
+    }
+
+    &-node {
+      display: flex;
+
+      &-label {
+        width: 40%;
+      }
+
+      &-link {
+        .palable;
+        text-decoration: underline;
+        cursor: pointer;
+        opacity: 0.8;
+
+        &:hover {
+          opacity: 1;
+        }
+      }
+
+      &-value {
+        flex: 1;
+        margin-left: 0.5em;
+        text-align: right;
       }
 
       &-value-scalar {
@@ -663,6 +785,12 @@ h2 {
 
 .terminal-inactive .terminal-cursor {
   visibility: hidden;
+}
+
+.metric {
+  &-unit {
+    padding-left: 0.25em;
+  }
 }
 
 .sidebar {

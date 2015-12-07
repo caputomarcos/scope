@@ -61,6 +61,19 @@ export function clickNode(nodeId) {
   );
 }
 
+export function clickRelative(nodeId, topologyId) {
+  AppDispatcher.dispatch({
+    type: ActionTypes.CLICK_RELATIVE,
+    nodeId,
+    topologyId
+  });
+  updateRoute();
+  getNodeDetails(
+    AppStore.getCurrentTopologyUrl(),
+    AppStore.getSelectedNodeId()
+  );
+}
+
 export function clickTopology(topologyId) {
   AppDispatcher.dispatch({
     type: ActionTypes.CLICK_TOPOLOGY,

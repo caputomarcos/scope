@@ -1,6 +1,7 @@
 package render
 
 import (
+	"github.com/weaveworks/scope/probe"
 	"github.com/weaveworks/scope/report"
 )
 
@@ -8,13 +9,17 @@ import (
 // an element of a topology. It should contain information that's relevant
 // to rendering a node when there are many nodes visible at once.
 type RenderableNode struct {
-	ID          string        `json:"id"`                    //
-	LabelMajor  string        `json:"label_major"`           // e.g. "process", human-readable
-	LabelMinor  string        `json:"label_minor,omitempty"` // e.g. "hostname", human-readable, optional
-	Rank        string        `json:"rank"`                  // to help the layout engine
-	Pseudo      bool          `json:"pseudo,omitempty"`      // sort-of a placeholder node, for rendering purposes
-	Origins     report.IDList `json:"origins,omitempty"`     // Core node IDs that contributed information
-	ControlNode string        `json:"-"`                     // ID of node from which to show the controls in the UI
+	ID          string   `json:"id"`                    //
+	LabelMajor  string   `json:"label_major"`           // e.g. "process", human-readable
+	LabelMinor  string   `json:"label_minor,omitempty"` // e.g. "hostname", human-readable, optional
+	Rank        string   `json:"rank"`                  // to help the layout engine
+	Pseudo      bool     `json:"pseudo,omitempty"`      // sort-of a placeholder node, for rendering purposes
+	Children    Children `json:"children,omitempty"`    // Nodes which have been grouped into this one
+	ControlNode string   `json:"-"`                     // ID of node from which to show the controls in the UI
+
+	// ID and topology to use when rendering summary information for this node
+	SummaryTopology string `json:"-"`
+	SummaryID       string `json:"-"`
 
 	report.EdgeMetadata `json:"metadata"` // Numeric sums
 	report.Node
@@ -28,51 +33,62 @@ func NewRenderableNode(id string) RenderableNode {
 		LabelMinor:   "",
 		Rank:         "",
 		Pseudo:       false,
-		Origins:      report.MakeIDList(),
+		Children:     Children{},
 		EdgeMetadata: report.EdgeMetadata{},
 		Node:         report.MakeNode(),
 	}
 }
 
 // NewRenderableNodeWith makes a new RenderableNode with some fields filled in
-func NewRenderableNodeWith(id, major, minor, rank string, rn RenderableNode) RenderableNode {
+func NewRenderableNodeWith(id, major, minor, rank string, node RenderableNode) RenderableNode {
+	summaryTopology, summaryID := node.SummaryTopology, node.SummaryID
+	if summaryTopology == "" || summaryID == "" {
+		summaryTopology = node.Node.Metadata[probe.Topology]
+		summaryID = node.Node.Metadata[probe.ID]
+	}
 	return RenderableNode{
-		ID:           id,
-		LabelMajor:   major,
-		LabelMinor:   minor,
-		Rank:         rank,
-		Pseudo:       false,
-		Origins:      rn.Origins.Copy(),
-		EdgeMetadata: rn.EdgeMetadata.Copy(),
-		Node:         rn.Node.Copy(),
+		ID:              id,
+		LabelMajor:      major,
+		LabelMinor:      minor,
+		Rank:            rank,
+		Pseudo:          false,
+		SummaryTopology: summaryTopology,
+		SummaryID:       summaryID,
+		Children:        node.Children.Copy(),
+		EdgeMetadata:    node.EdgeMetadata.Copy(),
+		Node:            node.Node.Copy(),
 	}
 }
 
 // NewDerivedNode create a renderable node based on node, but with a new ID
 func NewDerivedNode(id string, node RenderableNode) RenderableNode {
 	return RenderableNode{
-		ID:           id,
-		LabelMajor:   "",
-		LabelMinor:   "",
-		Rank:         "",
-		Pseudo:       node.Pseudo,
-		Origins:      node.Origins.Copy(),
-		EdgeMetadata: node.EdgeMetadata.Copy(),
-		Node:         node.Node.Copy(),
-		ControlNode:  "", // Do not propagate ControlNode when making a derived node!
+		ID:              id,
+		LabelMajor:      "",
+		LabelMinor:      "",
+		Rank:            "",
+		Pseudo:          node.Pseudo,
+		SummaryTopology: node.SummaryTopology,
+		SummaryID:       node.SummaryID,
+		Children:        node.Children.Copy(),
+		EdgeMetadata:    node.EdgeMetadata.Copy(),
+		Node:            node.Node.Copy(),
+		ControlNode:     "", // Do not propagate ControlNode when making a derived node!
 	}
 }
 
 func newDerivedPseudoNode(id, major string, node RenderableNode) RenderableNode {
 	return RenderableNode{
-		ID:           id,
-		LabelMajor:   major,
-		LabelMinor:   "",
-		Rank:         "",
-		Pseudo:       true,
-		Origins:      node.Origins.Copy(),
-		EdgeMetadata: node.EdgeMetadata.Copy(),
-		Node:         node.Node.Copy(),
+		ID:              id,
+		LabelMajor:      major,
+		LabelMinor:      "",
+		Rank:            "",
+		Pseudo:          true,
+		SummaryTopology: node.SummaryTopology,
+		SummaryID:       node.SummaryID,
+		Children:        node.Children.Copy(),
+		EdgeMetadata:    node.EdgeMetadata.Copy(),
+		Node:            node.Node.Copy(),
 	}
 }
 
@@ -103,11 +119,16 @@ func (rn RenderableNode) Merge(other RenderableNode) RenderableNode {
 		result.ControlNode = other.ControlNode
 	}
 
+	if result.SummaryTopology == "" || result.SummaryID == "" {
+		result.SummaryTopology = other.SummaryTopology
+		result.SummaryID = other.SummaryID
+	}
+
 	if result.Pseudo != other.Pseudo {
 		panic(result.ID)
 	}
 
-	result.Origins = rn.Origins.Merge(other.Origins)
+	result.Children = rn.Children.Merge(other.Children)
 	result.EdgeMetadata = rn.EdgeMetadata.Merge(other.EdgeMetadata)
 	result.Node = rn.Node.Merge(other.Node)
 
@@ -117,15 +138,17 @@ func (rn RenderableNode) Merge(other RenderableNode) RenderableNode {
 // Copy makes a deep copy of rn
 func (rn RenderableNode) Copy() RenderableNode {
 	return RenderableNode{
-		ID:           rn.ID,
-		LabelMajor:   rn.LabelMajor,
-		LabelMinor:   rn.LabelMinor,
-		Rank:         rn.Rank,
-		Pseudo:       rn.Pseudo,
-		Origins:      rn.Origins.Copy(),
-		EdgeMetadata: rn.EdgeMetadata.Copy(),
-		Node:         rn.Node.Copy(),
-		ControlNode:  rn.ControlNode,
+		ID:              rn.ID,
+		LabelMajor:      rn.LabelMajor,
+		LabelMinor:      rn.LabelMinor,
+		Rank:            rn.Rank,
+		Pseudo:          rn.Pseudo,
+		Children:        rn.Children.Copy(),
+		EdgeMetadata:    rn.EdgeMetadata.Copy(),
+		Node:            rn.Node.Copy(),
+		ControlNode:     rn.ControlNode,
+		SummaryTopology: rn.SummaryTopology,
+		SummaryID:       rn.SummaryID,
 	}
 }
 
@@ -136,6 +159,30 @@ func (rn RenderableNode) Prune() RenderableNode {
 	cp := rn.Copy()
 	cp.Node = report.MakeNode().WithAdjacent(cp.Node.Adjacency...)
 	return cp
+}
+
+type Children map[string]report.Node
+
+func (c Children) Add(id string, child report.Node) Children {
+	result := c.Copy()
+	result[id] = child
+	return result
+}
+
+func (c Children) Copy() Children {
+	result := Children{}
+	for id, child := range c {
+		result[id] = child
+	}
+	return result
+}
+
+func (c Children) Merge(other Children) Children {
+	result := c.Copy()
+	for id, child := range other {
+		result[id] = child
+	}
+	return result
 }
 
 // RenderableNodes is a set of RenderableNodes

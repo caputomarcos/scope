@@ -37,7 +37,8 @@ func TestMergeRenderableNode(t *testing.T) {
 		Rank:       "",
 		Pseudo:     false,
 		Node:       report.MakeNode().WithAdjacent("a1"),
-		Origins:    report.MakeIDList("o1"),
+		Children:   report.MakeIDList("o1"),
+		Parents:    report.MakeIDList("p1"),
 	}
 	node2 := render.RenderableNode{
 		ID:         "foo",
@@ -46,7 +47,8 @@ func TestMergeRenderableNode(t *testing.T) {
 		Rank:       "rank",
 		Pseudo:     false,
 		Node:       report.MakeNode().WithAdjacent("a2"),
-		Origins:    report.MakeIDList("o2"),
+		Children:   report.MakeIDList("o2"),
+		Parents:    report.MakeIDList("p2"),
 	}
 	want := render.RenderableNode{
 		ID:           "foo",
@@ -55,7 +57,8 @@ func TestMergeRenderableNode(t *testing.T) {
 		Rank:         "rank",
 		Pseudo:       false,
 		Node:         report.MakeNode().WithAdjacent("a1").WithAdjacent("a2"),
-		Origins:      report.MakeIDList("o1", "o2"),
+		Children:     report.MakeIDList("o1", "o2"),
+		Parents:      report.MakeIDList("p1", "p2"),
 		EdgeMetadata: report.EdgeMetadata{},
 	}.Prune()
 	have := node1.Merge(node2).Prune()

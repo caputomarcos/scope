@@ -49,7 +49,7 @@ func (r processWithContainerNameRenderer) Render(rpt report.Report) RenderableNo
 		if !ok {
 			continue
 		}
-		container, ok := containers[containerID]
+		container, ok := containers[MakeContainerID(containerID)]
 		if !ok {
 			continue
 		}

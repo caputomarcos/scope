@@ -23,7 +23,7 @@ var (
 				EgressPacketCount: newu64(70),
 				EgressByteCount:   newu64(700),
 			},
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.UnknownClient1NodeID,
 				fixture.UnknownClient2NodeID,
 			),
@@ -39,7 +39,7 @@ var (
 				EgressPacketCount: newu64(50),
 				EgressByteCount:   newu64(500),
 			},
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.UnknownClient3NodeID,
 			),
 		}
@@ -54,7 +54,7 @@ var (
 				EgressPacketCount: newu64(60),
 				EgressByteCount:   newu64(600),
 			},
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.RandomClientNodeID,
 				fixture.GoogleEndpointNodeID,
 			),
@@ -72,9 +72,10 @@ var (
 			LabelMinor: fmt.Sprintf("%s (%s)", fixture.ClientHostID, fixture.Client1PID),
 			Rank:       fixture.Client1Comm,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Client54001NodeID,
-				fixture.ClientProcess1NodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ClientHostNodeID,
 			),
 			Node: report.MakeNode().WithAdjacent(ServerProcessID),
@@ -89,9 +90,10 @@ var (
 			LabelMinor: fmt.Sprintf("%s (%s)", fixture.ClientHostID, fixture.Client2PID),
 			Rank:       fixture.Client2Comm,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Client54002NodeID,
-				fixture.ClientProcess2NodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ClientHostNodeID,
 			),
 			Node: report.MakeNode().WithAdjacent(ServerProcessID),
@@ -106,9 +108,10 @@ var (
 			LabelMinor: fmt.Sprintf("%s (%s)", fixture.ServerHostID, fixture.ServerPID),
 			Rank:       fixture.ServerComm,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Server80NodeID,
-				fixture.ServerProcessNodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ServerHostNodeID,
 			),
 			Node: report.MakeNode(),
@@ -123,10 +126,12 @@ var (
 			LabelMinor: fmt.Sprintf("%s (%s)", fixture.ServerHostID, fixture.NonContainerPID),
 			Rank:       fixture.NonContainerComm,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.NonContainerProcessNodeID,
-				fixture.ServerHostNodeID,
 				fixture.NonContainerNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ServerHostNodeID,
 			),
 			Node:         report.MakeNode().WithAdjacent(render.TheInternetID),
 			EdgeMetadata: report.EdgeMetadata{},
@@ -143,11 +148,13 @@ var (
 			LabelMinor: "2 processes",
 			Rank:       "curl",
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Client54001NodeID,
 				fixture.Client54002NodeID,
 				fixture.ClientProcess1NodeID,
 				fixture.ClientProcess2NodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ClientHostNodeID,
 			),
 			Node: report.MakeNode().WithAdjacent("apache"),
@@ -162,9 +169,11 @@ var (
 			LabelMinor: "1 process",
 			Rank:       "apache",
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Server80NodeID,
 				fixture.ServerProcessNodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ServerHostNodeID,
 			),
 			Node: report.MakeNode(),
@@ -179,10 +188,11 @@ var (
 			LabelMinor: "1 process",
 			Rank:       fixture.NonContainerComm,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.NonContainerProcessNodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ServerHostNodeID,
-				fixture.NonContainerNodeID,
 			),
 			Node:         report.MakeNode().WithAdjacent(render.TheInternetID),
 			EdgeMetadata: report.EdgeMetadata{},
@@ -199,13 +209,14 @@ var (
 			LabelMinor: fixture.ClientHostName,
 			Rank:       fixture.ClientContainerImageName,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
-				fixture.ClientContainerImageNodeID,
-				fixture.ClientContainerNodeID,
+			Children: report.MakeIDList(
 				fixture.Client54001NodeID,
 				fixture.Client54002NodeID,
 				fixture.ClientProcess1NodeID,
 				fixture.ClientProcess2NodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ClientContainerImageNodeID,
 				fixture.ClientHostNodeID,
 			),
 			Node: report.MakeNode().WithAdjacent(fixture.ServerContainerID),
@@ -221,11 +232,12 @@ var (
 			LabelMinor: fixture.ServerHostName,
 			Rank:       fixture.ServerContainerImageName,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
-				fixture.ServerContainerImageNodeID,
-				fixture.ServerContainerNodeID,
+			Children: report.MakeIDList(
 				fixture.Server80NodeID,
 				fixture.ServerProcessNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ServerContainerImageNodeID,
 				fixture.ServerHostNodeID,
 			),
 			Node: report.MakeNode(),
@@ -241,10 +253,12 @@ var (
 			LabelMinor: fixture.ServerHostName,
 			Rank:       "",
 			Pseudo:     true,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.NonContainerProcessNodeID,
-				fixture.ServerHostNodeID,
 				fixture.NonContainerNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ServerHostNodeID,
 			),
 			Node:         report.MakeNode().WithAdjacent(render.TheInternetID),
 			EdgeMetadata: report.EdgeMetadata{},
@@ -259,13 +273,14 @@ var (
 			LabelMinor: "1 container",
 			Rank:       fixture.ClientContainerImageName,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
-				fixture.ClientContainerImageNodeID,
+			Children: report.MakeIDList(
 				fixture.ClientContainerNodeID,
 				fixture.Client54001NodeID,
 				fixture.Client54002NodeID,
 				fixture.ClientProcess1NodeID,
 				fixture.ClientProcess2NodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ClientHostNodeID,
 			),
 			Node: report.MakeNode().WithAdjacent(fixture.ServerContainerImageName),
@@ -280,12 +295,14 @@ var (
 			LabelMinor: "1 container",
 			Rank:       fixture.ServerContainerImageName,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
-				fixture.ServerContainerImageNodeID,
+			Children: report.MakeIDList(
 				fixture.ServerContainerNodeID,
 				fixture.Server80NodeID,
 				fixture.ServerProcessNodeID,
-				fixture.ServerHostNodeID),
+			),
+			Parents: report.MakeIDList(
+				fixture.ServerHostNodeID,
+			),
 			Node: report.MakeNode(),
 			EdgeMetadata: report.EdgeMetadata{
 				IngressPacketCount: newu64(210),
@@ -298,9 +315,11 @@ var (
 			LabelMinor: fixture.ServerHostName,
 			Rank:       "",
 			Pseudo:     true,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.NonContainerNodeID,
 				fixture.NonContainerProcessNodeID,
+			),
+			Parents: report.MakeIDList(
 				fixture.ServerHostNodeID,
 			),
 			Node:         report.MakeNode().WithAdjacent(render.TheInternetID),
@@ -321,11 +340,9 @@ var (
 			LabelMinor: "hostname.com", // after first .
 			Rank:       "hostname.com",
 			Pseudo:     false,
-			Origins: report.MakeIDList(
-				fixture.ServerHostNodeID,
-				fixture.ServerAddressNodeID,
-			),
-			Node: report.MakeNode(),
+			Children:   report.MakeIDList(),
+			Parents:    report.MakeIDList(),
+			Node:       report.MakeNode(),
 			EdgeMetadata: report.EdgeMetadata{
 				MaxConnCountTCP: newu64(3),
 			},
@@ -336,11 +353,11 @@ var (
 			LabelMinor: "hostname.com", // after first .
 			Rank:       "hostname.com",
 			Pseudo:     false,
-			Origins: report.MakeIDList(
-				fixture.ClientHostNodeID,
+			Children: report.MakeIDList(
 				fixture.ClientAddressNodeID,
 			),
-			Node: report.MakeNode().WithAdjacent(ServerHostRenderedID),
+			Parents: report.MakeIDList(),
+			Node:    report.MakeNode().WithAdjacent(ServerHostRenderedID),
 			EdgeMetadata: report.EdgeMetadata{
 				MaxConnCountTCP: newu64(3),
 			},
@@ -351,7 +368,7 @@ var (
 			Pseudo:       true,
 			Node:         report.MakeNode().WithAdjacent(ServerHostRenderedID),
 			EdgeMetadata: report.EdgeMetadata{},
-			Origins:      report.MakeIDList(fixture.UnknownAddress1NodeID, fixture.UnknownAddress2NodeID),
+			Children:     report.MakeIDList(fixture.UnknownAddress1NodeID, fixture.UnknownAddress2NodeID),
 		},
 		pseudoHostID2: {
 			ID:           pseudoHostID2,
@@ -359,7 +376,7 @@ var (
 			Pseudo:       true,
 			Node:         report.MakeNode().WithAdjacent(ServerHostRenderedID),
 			EdgeMetadata: report.EdgeMetadata{},
-			Origins:      report.MakeIDList(fixture.UnknownAddress3NodeID),
+			Children:     report.MakeIDList(fixture.UnknownAddress3NodeID),
 		},
 		render.TheInternetID: {
 			ID:           render.TheInternetID,
@@ -367,7 +384,7 @@ var (
 			Pseudo:       true,
 			Node:         report.MakeNode().WithAdjacent(ServerHostRenderedID),
 			EdgeMetadata: report.EdgeMetadata{},
-			Origins:      report.MakeIDList(fixture.RandomAddressNodeID),
+			Children:     report.MakeIDList(fixture.RandomAddressNodeID),
 		},
 	}).Prune()
 
@@ -378,15 +395,17 @@ var (
 			LabelMinor: "1 container",
 			Rank:       "ping/pong-a",
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Client54001NodeID,
 				fixture.Client54002NodeID,
 				fixture.ClientProcess1NodeID,
 				fixture.ClientProcess2NodeID,
-				fixture.ClientHostNodeID,
 				fixture.ClientContainerNodeID,
 				fixture.ClientContainerImageNodeID,
 				fixture.ClientPodNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ClientHostNodeID,
 			),
 			Node: report.MakeNode().WithAdjacent("ping/pong-b"),
 			EdgeMetadata: report.EdgeMetadata{
@@ -400,13 +419,15 @@ var (
 			LabelMinor: "1 container",
 			Rank:       "ping/pong-b",
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Server80NodeID,
 				fixture.ServerPodNodeID,
 				fixture.ServerProcessNodeID,
 				fixture.ServerContainerNodeID,
-				fixture.ServerHostNodeID,
 				fixture.ServerContainerImageNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ServerHostNodeID,
 			),
 			Node: report.MakeNode(),
 			EdgeMetadata: report.EdgeMetadata{
@@ -420,10 +441,12 @@ var (
 			LabelMinor: fixture.ServerHostName,
 			Rank:       "",
 			Pseudo:     true,
-			Origins: report.MakeIDList(
-				fixture.ServerHostNodeID,
+			Children: report.MakeIDList(
 				fixture.NonContainerProcessNodeID,
 				fixture.NonContainerNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ServerHostNodeID,
 			),
 			Node:         report.MakeNode().WithAdjacent(render.TheInternetID),
 			EdgeMetadata: report.EdgeMetadata{},
@@ -437,7 +460,7 @@ var (
 				EgressPacketCount: newu64(60),
 				EgressByteCount:   newu64(600),
 			},
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.RandomClientNodeID,
 				fixture.GoogleEndpointNodeID,
 			),
@@ -451,12 +474,11 @@ var (
 			LabelMinor: "2 pods",
 			Rank:       fixture.ServiceID,
 			Pseudo:     false,
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.Client54001NodeID,
 				fixture.Client54002NodeID,
 				fixture.ClientProcess1NodeID,
 				fixture.ClientProcess2NodeID,
-				fixture.ClientHostNodeID,
 				fixture.ClientContainerNodeID,
 				fixture.ClientContainerImageNodeID,
 				fixture.ClientPodNodeID,
@@ -465,8 +487,11 @@ var (
 				fixture.ServiceNodeID,
 				fixture.ServerProcessNodeID,
 				fixture.ServerContainerNodeID,
-				fixture.ServerHostNodeID,
 				fixture.ServerContainerImageNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ClientHostNodeID,
+				fixture.ServerHostNodeID,
 			),
 			Node: report.MakeNode().WithAdjacent(fixture.ServiceID), // ?? Shouldn't be adjacent to itself?
 			EdgeMetadata: report.EdgeMetadata{
@@ -482,10 +507,12 @@ var (
 			LabelMinor: fixture.ServerHostName,
 			Rank:       "",
 			Pseudo:     true,
-			Origins: report.MakeIDList(
-				fixture.ServerHostNodeID,
+			Children: report.MakeIDList(
 				fixture.NonContainerProcessNodeID,
 				fixture.NonContainerNodeID,
+			),
+			Parents: report.MakeIDList(
+				fixture.ServerHostNodeID,
 			),
 			Node:         report.MakeNode().WithAdjacent(render.TheInternetID),
 			EdgeMetadata: report.EdgeMetadata{},
@@ -499,10 +526,11 @@ var (
 				EgressPacketCount: newu64(60),
 				EgressByteCount:   newu64(600),
 			},
-			Origins: report.MakeIDList(
+			Children: report.MakeIDList(
 				fixture.RandomClientNodeID,
 				fixture.GoogleEndpointNodeID,
 			),
+			Parents: report.MakeIDList(),
 		},
 	}).Prune()
 )

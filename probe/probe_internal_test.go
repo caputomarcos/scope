@@ -17,7 +17,7 @@ func TestApply(t *testing.T) {
 		endpointNodeID = "c"
 		addressNodeID  = "d"
 		endpointNode   = report.MakeNodeWith(map[string]string{"5": "6"})
-		addressNode    = report.MakeNodeWith(map[string]string{"7": "8"})
+		addressNode    = report.MakeNodeWith(map[string]string{"7": "8"}).WithRank(1)
 	)
 
 	p := New(0, 0, nil)
@@ -33,8 +33,8 @@ func TestApply(t *testing.T) {
 		from report.Topology
 		via  string
 	}{
-		{endpointNode.Merge(report.MakeNodeWith(map[string]string{"topology": "endpoint"})), r.Endpoint, endpointNodeID},
-		{addressNode.Merge(report.MakeNodeWith(map[string]string{"topology": "address"})), r.Address, addressNodeID},
+		{endpointNode.Merge(report.MakeNodeWith(map[string]string{"topology": "endpoint", "id": "c"})), r.Endpoint, endpointNodeID},
+		{addressNode.Merge(report.MakeNodeWith(map[string]string{"topology": "address", "id": "d"})), r.Address, addressNodeID},
 	} {
 		if want, have := tuple.want, tuple.from.Nodes[tuple.via]; !reflect.DeepEqual(want, have) {
 			t.Errorf("want %+v, have %+v", want, have)

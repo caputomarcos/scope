@@ -294,6 +294,16 @@ export class AppStore extends Store {
       this.__emitChange();
       break;
 
+    case ActionTypes.CLICK_RELATIVE:
+      deSelectNode();
+      selectedNodeId = payload.nodeId;
+      if (payload.topologyId !== currentTopologyId) {
+        setTopology(payload.topologyId);
+        nodes = nodes.clear();
+      }
+      this.__emitChange();
+      break;
+
     case ActionTypes.CLICK_TOPOLOGY:
       deSelectNode();
       if (payload.topologyId !== currentTopologyId) {

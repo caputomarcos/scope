@@ -122,12 +122,13 @@ func MapProcessIdentity(m RenderableNode, _ report.Networks) RenderableNodes {
 // renderable node. As it is only ever run on container topology nodes, we
 // expect that certain keys are present.
 func MapContainerIdentity(m RenderableNode, _ report.Networks) RenderableNodes {
-	id, ok := m.Metadata[docker.ContainerID]
+	containerID, ok := m.Metadata[docker.ContainerID]
 	if !ok {
 		return RenderableNodes{}
 	}
 
 	var (
+		id       = MakeContainerID(containerID)
 		major, _ = GetRenderableContainerName(m.Node)
 		minor    = report.ExtractHostID(m.Node)
 		rank     = m.Metadata[docker.ImageID]
@@ -135,10 +136,6 @@ func MapContainerIdentity(m RenderableNode, _ report.Networks) RenderableNodes {
 
 	node := NewRenderableNodeWith(id, major, minor, rank, m)
 	node.ControlNode = m.ID
-	if imageID, ok := m.Metadata[docker.ImageID]; ok {
-		hostID, _, _ := report.ParseContainerNodeID(m.ID)
-		node.Origins = node.Origins.Add(report.MakeContainerNodeID(hostID, imageID))
-	}
 	return RenderableNodes{id: node}
 }
 
@@ -162,14 +159,15 @@ func GetRenderableContainerName(nmd report.Node) (string, bool) {
 // image renderable node. As it is only ever run on container image topology
 // nodes, we expect that certain keys are present.
 func MapContainerImageIdentity(m RenderableNode, _ report.Networks) RenderableNodes {
-	id, ok := m.Metadata[docker.ImageID]
+	imageID, ok := m.Metadata[docker.ImageID]
 	if !ok {
 		return RenderableNodes{}
 	}
 
 	var (
+		id    = MakeContainerImageID(imageID)
 		major = m.Metadata[docker.ImageName]
-		rank  = m.Metadata[docker.ImageID]
+		rank  = imageID
 	)
 
 	return RenderableNodes{id: NewRenderableNodeWith(id, major, "", rank, m)}
@@ -179,12 +177,13 @@ func MapContainerImageIdentity(m RenderableNode, _ report.Networks) RenderableNo
 // only ever run on pod topology nodes, we expect that certain keys
 // are present.
 func MapPodIdentity(m RenderableNode, _ report.Networks) RenderableNodes {
-	id, ok := m.Metadata[kubernetes.PodID]
+	podID, ok := m.Metadata[kubernetes.PodID]
 	if !ok {
 		return RenderableNodes{}
 	}
 
 	var (
+		id    = MakePodID(podID)
 		major = m.Metadata[kubernetes.PodName]
 		rank  = m.Metadata[kubernetes.PodID]
 	)
@@ -196,12 +195,13 @@ func MapPodIdentity(m RenderableNode, _ report.Networks) RenderableNodes {
 // only ever run on service topology nodes, we expect that certain keys
 // are present.
 func MapServiceIdentity(m RenderableNode, _ report.Networks) RenderableNodes {
-	id, ok := m.Metadata[kubernetes.ServiceID]
+	serviceID, ok := m.Metadata[kubernetes.ServiceID]
 	if !ok {
 		return RenderableNodes{}
 	}
 
 	var (
+		id    = MakeServiceID(serviceID)
 		major = m.Metadata[kubernetes.ServiceName]
 		rank  = m.Metadata[kubernetes.ServiceID]
 	)
@@ -358,11 +358,12 @@ func MapIP2Container(n RenderableNode, _ report.Networks) RenderableNodes {
 	// If this node is not a container, exclude it.
 	// This excludes all the nodes we've dragged in from endpoint
 	// that we failed to join to a container.
-	id, ok := n.Node.Metadata[docker.ContainerID]
+	containerID, ok := n.Node.Metadata[docker.ContainerID]
 	if !ok {
 		return RenderableNodes{}
 	}
 
+	id := MakeContainerID(containerID)
 	return RenderableNodes{id: NewDerivedNode(id, n)}
 }
 
@@ -417,16 +418,22 @@ func MapProcess2Container(n RenderableNode, _ report.Networks) RenderableNodes {
 	// into an per-host "Uncontained" node.  If for whatever reason
 	// this node doesn't have a host id in their nodemetadata, it'll
 	// all get grouped into a single uncontained node.
-	id, ok := n.Node.Metadata[docker.ContainerID]
-	if !ok {
-		hostID := report.ExtractHostID(n.Node)
+	var (
+		id   string
+		node RenderableNode
+	)
+	hostID := report.ExtractHostID(n.Node)
+	if containerID, ok := n.Node.Metadata[docker.ContainerID]; ok {
+		id = MakeContainerID(containerID)
+		node = NewDerivedNode(id, n)
+	} else {
 		id = MakePseudoNodeID(UncontainedID, hostID)
-		node := newDerivedPseudoNode(id, UncontainedMajor, n)
+		node = newDerivedPseudoNode(id, UncontainedMajor, n)
 		node.LabelMinor = hostID
-		return RenderableNodes{id: node}
 	}
 
-	return RenderableNodes{id: NewDerivedNode(id, n)}
+	node.Children = node.Children.Add(MakeProcessID(hostID, n.Metadata[process.PID]), n.Node)
+	return RenderableNodes{id: node}
 }
 
 // MapProcess2Name maps process RenderableNodes to RenderableNodes
@@ -449,6 +456,10 @@ func MapProcess2Name(n RenderableNode, _ report.Networks) RenderableNodes {
 	node.LabelMajor = name
 	node.Rank = name
 	node.Node.Counters[processesKey] = 1
+	hostID := report.ExtractHostID(n.Node)
+	node.Children = node.Children.Add(MakeProcessID(hostID, n.Node.Metadata[process.PID]), n.Node)
+	node.SummaryTopology = ""
+	node.SummaryID = ""
 	return RenderableNodes{name: node}
 }
 
@@ -488,14 +499,21 @@ func MapContainer2ContainerImage(n RenderableNode, _ report.Networks) Renderable
 
 	// Otherwise, if some some reason the container doesn't have a image_id
 	// (maybe slightly out of sync reports), just drop it
-	id, ok := n.Node.Metadata[docker.ImageID]
+	imageID, ok := n.Node.Metadata[docker.ImageID]
 	if !ok {
 		return RenderableNodes{}
 	}
 
 	// Add container id key to the counters, which will later be counted to produce the minor label
+	id := MakeContainerImageID(imageID)
 	result := NewDerivedNode(id, n)
 	result.Node.Counters[containersKey] = 1
+
+	// Add the container as a child of the new image node
+	result.Children = result.Children.Add(MakeContainerID(n.ID), n.Node)
+
+	result.SummaryTopology = ""
+	result.SummaryID = ""
 	return RenderableNodes{id: result}
 }
 
@@ -523,9 +541,11 @@ func MapPod2Service(n RenderableNode, _ report.Networks) RenderableNodes {
 	}
 
 	result := RenderableNodes{}
-	for _, id := range strings.Fields(ids) {
+	for _, serviceID := range strings.Fields(ids) {
+		id := MakeServiceID(serviceID)
 		n := NewDerivedNode(id, n)
 		n.Node.Counters[podsKey] = 1
+		n.Children = n.Children.Add(MakePodID(n.ID), n.Node)
 		result[id] = n
 	}
 	return result
@@ -583,23 +603,27 @@ func MapContainer2Pod(n RenderableNode, _ report.Networks) RenderableNodes {
 
 	// Otherwise, if some some reason the container doesn't have a pod_id (maybe
 	// slightly out of sync reports, or its not in a pod), just drop it
-	id, ok := n.Node.Metadata["docker_label_io.kubernetes.pod.name"]
+	podID, ok := n.Node.Metadata["docker_label_io.kubernetes.pod.name"]
 	if !ok {
 		return RenderableNodes{}
 	}
+	id := MakePodID(podID)
 
 	// Add container-<id> key to NMD, which will later be counted to produce the
 	// minor label
-	result := NewRenderableNodeWith(id, "", "", id, n)
+	result := NewRenderableNodeWith(id, "", "", podID, n)
 	result.Node.Counters[containersKey] = 1
 	// Due to a bug in kubernetes, addon pods on the master node are not returned
 	// from the API. This is a workaround until
 	// https://github.com/kubernetes/kubernetes/issues/14738 is fixed.
-	if s := strings.SplitN(id, "/", 2); len(s) == 2 {
+	if s := strings.SplitN(podID, "/", 2); len(s) == 2 {
 		result.LabelMajor = s[1]
 		result.Node.Metadata[kubernetes.Namespace] = s[0]
 		result.Node.Metadata[kubernetes.PodName] = s[1]
 	}
+
+	result.Children = result.Children.Add(MakeContainerID(n.ID), n.Node)
+
 	return RenderableNodes{id: result}
 }
 
@@ -623,6 +647,9 @@ func MapContainer2Hostname(n RenderableNode, _ report.Networks) RenderableNodes 
 
 	// Add container id key to the counters, which will later be counted to produce the minor label
 	result.Node.Counters[containersKey] = 1
+
+	result.SummaryTopology = ""
+	result.SummaryID = ""
 	return RenderableNodes{id: result}
 }
 
