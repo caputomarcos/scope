@@ -57,13 +57,13 @@ let hostname = '...';
 let version = '...';
 let mouseOverEdgeId = null;
 let mouseOverNodeId = null;
+let nodeDetails = makeOrderedMap(); // nodeId -> details
 let nodes = makeOrderedMap(); // nodeId -> node
-let nodeDetails = null;
 let selectedNodeId = null;
 let topologies = [];
 let topologiesLoaded = false;
 let routeSet = false;
-let controlPipe = null;
+let controlPipes = makeOrderedMap(); // pipeId -> controlPipe
 let websocketClosed = true;
 
 function processTopologies(topologyList) {
@@ -102,10 +102,18 @@ function setDefaultTopologyOptions(topologyList) {
   });
 }
 
-function deSelectNode() {
-  selectedNodeId = null;
-  nodeDetails = null;
-  controlPipe = null;
+function popNodeDetails() {
+  if (nodeDetails.size > 0) {
+    const lastNodeId = nodeDetails.last().id;
+    // remove pipe if it belongs to the node being closed
+    controlPipes = controlPipes.filter(pipe => {
+      return pipe.nodeId !== lastNodeId;
+    });
+    nodeDetails = nodeDetails.butLast();
+  }
+  if (nodeDetails.size === 0) {
+    selectedNodeId = null;
+  }
 }
 
 // Store API
@@ -115,9 +123,10 @@ export class AppStore extends Store {
   // keep at the top
   getAppState() {
     return {
-      topologyId: currentTopologyId,
-      selectedNodeId: this.getSelectedNodeId(),
       controlPipe: this.getControlPipe(),
+      nodeDetailIds: nodeDetails.keySeq().toJS(),
+      selectedNodeId: selectedNodeId,
+      topologyId: currentTopologyId,
       topologyOptions: topologyOptions.toJS() // all options
     };
   }
@@ -148,7 +157,7 @@ export class AppStore extends Store {
   }
 
   getControlPipe() {
-    return controlPipe;
+    return controlPipes.last();
   }
 
   getCurrentTopology() {
@@ -276,36 +285,34 @@ export class AppStore extends Store {
       break;
 
     case ActionTypes.CLICK_CLOSE_DETAILS:
-      deSelectNode();
+      popNodeDetails();
       this.__emitChange();
       break;
 
     case ActionTypes.CLICK_CLOSE_TERMINAL:
-      controlPipe = null;
+      controlPipes = controlPipes.clear();
       this.__emitChange();
       break;
 
     case ActionTypes.CLICK_NODE:
-      deSelectNode();
-      if (payload.nodeId !== selectedNodeId) {
-        // select new node if it's not the same (in that case just delesect)
-        selectedNodeId = payload.nodeId;
+      const prevSelectedNodeId = selectedNodeId;
+      popNodeDetails();
+      // select new node if it's not the same (in that case just delesect)
+      if (prevSelectedNodeId !== payload.nodeId) {
+        nodeDetails = nodeDetails.set(payload.nodeId, null);
       }
       this.__emitChange();
       break;
 
     case ActionTypes.CLICK_RELATIVE:
-      deSelectNode();
-      selectedNodeId = payload.nodeId;
-      if (payload.topologyId !== currentTopologyId) {
-        setTopology(payload.topologyId);
-        nodes = nodes.clear();
-      }
+      nodeDetails = nodeDetails.set(payload.nodeId, null);
       this.__emitChange();
       break;
 
     case ActionTypes.CLICK_TOPOLOGY:
-      deSelectNode();
+      while (nodeDetails.size > 0) {
+        popNodeDetails();
+      }
       if (payload.topologyId !== currentTopologyId) {
         setTopology(payload.topologyId);
         nodes = nodes.clear();
@@ -335,7 +342,7 @@ export class AppStore extends Store {
       break;
 
     case ActionTypes.DESELECT_NODE:
-      deSelectNode();
+      selectedNodeId = null;
       this.__emitChange();
       break;
 
@@ -370,16 +377,17 @@ export class AppStore extends Store {
       break;
 
     case ActionTypes.RECEIVE_CONTROL_PIPE:
-      controlPipe = {
+      controlPipes = controlPipes.set(payload.pipeId, {
         id: payload.pipeId,
+        nodeId: payload.nodeId,
         raw: payload.rawTty
-      };
+      });
       this.__emitChange();
       break;
 
     case ActionTypes.RECEIVE_CONTROL_PIPE_STATUS:
-      if (controlPipe) {
-        controlPipe.status = payload.status;
+      if (controlPipes.has(payload.pipeId)) {
+        controlPipes = controlPipes.setIn([payload.pipeId, 'status'], payload.status);
         this.__emitChange();
       }
       break;
@@ -392,8 +400,8 @@ export class AppStore extends Store {
     case ActionTypes.RECEIVE_NODE_DETAILS:
       errorUrl = null;
       // disregard if node is not selected anymore
-      if (payload.details.id === selectedNodeId) {
-        nodeDetails = payload.details;
+      if (nodeDetails.has(payload.details.id)) {
+        nodeDetails = nodeDetails.set(payload.details.id, payload.details);
       }
       this.__emitChange();
       break;
@@ -463,7 +471,18 @@ export class AppStore extends Store {
       setTopology(payload.state.topologyId);
       setDefaultTopologyOptions(topologies);
       selectedNodeId = payload.state.selectedNodeId;
-      controlPipe = payload.state.controlPipe;
+      if (payload.state.controlPipe) {
+        controlPipes = makeOrderedMap(
+          [payload.state.controlPipe.pipeId, payload.state.controlPipe]
+        );
+      } else {
+        controlPipes = controlPipes.clear();
+      }
+      if (payload.state.nodeDetailIds) {
+        nodeDetails = makeOrderedMap(payload.state.nodeDetailIds.map(nodeId => [nodeId, null]));
+      } else {
+        nodeDetails = nodeDetails.clear();
+      }
       topologyOptions = Immutable.fromJS(payload.state.topologyOptions)
         || topologyOptions;
       this.__emitChange();

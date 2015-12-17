@@ -118,22 +118,24 @@ export function getNodesDelta(topologyUrl, options) {
   }
 }
 
-export function getNodeDetails(topologyUrl, nodeId) {
-  if (topologyUrl && nodeId) {
-    const url = [topologyUrl, '/', encodeURIComponent(nodeId)]
-      .join('').substr(1);
-    reqwest({
-      url: url,
-      success: function(res) {
-        receiveNodeDetails(res.node);
-      },
-      error: function(err) {
-        log('Error in node details request: ' + err.responseText);
-        // dont treat missing node as error
-        if (err.status !== 404) {
-          receiveError(topologyUrl);
+export function getNodeDetails(topologyUrl, nodeMap) {
+  if (topologyUrl) {
+    nodeMap.forEach((_, nodeId) => {
+      const url = [topologyUrl, '/', encodeURIComponent(nodeId)]
+        .join('').substr(1);
+      reqwest({
+        url: url,
+        success: function(res) {
+          receiveNodeDetails(res.node);
+        },
+        error: function(err) {
+          log('Error in node details request: ' + err.responseText);
+          // dont treat missing node as error
+          if (err.status !== 404) {
+            receiveError(topologyUrl);
+          }
         }
-      }
+      });
     });
   }
 }

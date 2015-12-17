@@ -27,7 +27,7 @@ export function changeTopologyOption(option, value, topologyId) {
   );
   getNodeDetails(
     AppStore.getCurrentTopologyUrl(),
-    AppStore.getSelectedNodeId()
+    AppStore.getNodeDetails()
   );
 }
 
@@ -57,7 +57,7 @@ export function clickNode(nodeId) {
   updateRoute();
   getNodeDetails(
     AppStore.getCurrentTopologyUrl(),
-    AppStore.getSelectedNodeId()
+    AppStore.getNodeDetails()
   );
 }
 
@@ -70,7 +70,7 @@ export function clickRelative(nodeId, topologyId) {
   updateRoute();
   getNodeDetails(
     AppStore.getCurrentTopologyUrl(),
-    AppStore.getSelectedNodeId()
+    AppStore.getNodeDetails()
   );
 }
 
@@ -189,7 +189,7 @@ export function receiveTopologies(topologies) {
   );
   getNodeDetails(
     AppStore.getCurrentTopologyUrl(),
-    AppStore.getSelectedNodeId()
+    AppStore.getNodeDetails()
   );
 }
 
@@ -202,6 +202,7 @@ export function receiveApiDetails(apiDetails) {
 }
 
 export function receiveControlPipeFromParams(pipeId, rawTty) {
+  // TODO add nodeId
   AppDispatcher.dispatch({
     type: ActionTypes.RECEIVE_CONTROL_PIPE,
     pipeId: pipeId,
@@ -223,6 +224,7 @@ export function receiveControlPipe(pipeId, nodeId, rawTty) {
 
   AppDispatcher.dispatch({
     type: ActionTypes.RECEIVE_CONTROL_PIPE,
+    nodeId: nodeId,
     pipeId: pipeId,
     rawTty: rawTty
   });
@@ -259,6 +261,6 @@ export function route(state) {
   );
   getNodeDetails(
     AppStore.getCurrentTopologyUrl(),
-    AppStore.getSelectedNodeId()
+    AppStore.getNodeDetails()
   );
 }

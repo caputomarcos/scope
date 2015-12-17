@@ -17,14 +17,20 @@ export default class Details extends React.Component {
   render() {
     return (
       <div id="details">
-        <div className="details-wrapper">
-          <div className="details-tools-wrapper">
-            <div className="details-tools">
-              <span className="fa fa-close" onClick={this.handleClickClose} />
+        {this.props.details.toKeyedSeq().map((details, nodeId) => {
+          return (
+            <div className="details-wrapper">
+              <div className="details-tools-wrapper">
+                <div className="details-tools">
+                  <span className="fa fa-close" onClick={this.handleClickClose} />
+                </div>
+              </div>
+              <NodeDetails details={details} controlError={this.props.controlError}
+                controlPending={this.props.controlPending} nodes={this.props.nodes}
+                nodeId={nodeId} />
             </div>
-          </div>
-          <NodeDetails {...this.props} />
-        </div>
+          );
+        })}
       </div>
     );
   }
