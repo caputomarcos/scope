@@ -103,6 +103,17 @@ export default class NodeDetails extends React.Component {
       }
     };
 
+    let summary;
+    if (details.metadata || details.metrics) {
+      summary = (
+        <div className="node-details-content-section">
+          <div className="node-details-content-section-header">Status</div>
+          <NodeDetailsHealth metrics={details.metrics} />
+          <NodeDetailsInfo metadata={details.metadata} />
+        </div>
+      );
+    }
+
     return (
       <div className="node-details">
         <div className="node-details-header" style={styles.header}>
@@ -122,11 +133,7 @@ export default class NodeDetails extends React.Component {
         </div>}
 
         <div className="node-details-content">
-          <div className="node-details-content-section">
-            <div className="node-details-content-section-header">Status</div>
-            <NodeDetailsHealth metrics={details.metrics} />
-            <NodeDetailsInfo metadata={details.metadata} />
-          </div>
+          {summary && summary}
           {details.children && details.children.map(children => {
             return (
               <div className="node-details-content-section" key={children.topologyId}>
