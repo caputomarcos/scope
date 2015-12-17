@@ -257,6 +257,7 @@ func processNodeSummary(nmd report.Node) NodeSummary {
 		ID:       id,
 		Label:    label,
 		Metadata: processNodeMetadata(nmd),
+		Metrics:  processNodeMetrics(nmd),
 	}
 }
 
