@@ -6,6 +6,7 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/gorilla/websocket"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/scope/render"
 )
@@ -26,14 +27,14 @@ type APINode struct {
 }
 
 // Full topology.
-func handleTopology(rep Reporter, renderer render.Renderer, w http.ResponseWriter, r *http.Request) {
+func handleTopology(ctx context.Context, rep Reporter, renderer render.Renderer, w http.ResponseWriter, r *http.Request) {
 	respondWith(w, http.StatusOK, APITopology{
-		Nodes: renderer.Render(rep.Report()).Prune(),
+		Nodes: renderer.Render(rep.Report(ctx)).Prune(),
 	})
 }
 
 // Websocket for the full topology. This route overlaps with the next.
-func handleWs(rep Reporter, renderer render.Renderer, w http.ResponseWriter, r *http.Request) {
+func handleWs(ctx context.Context, rep Reporter, renderer render.Renderer, w http.ResponseWriter, r *http.Request) {
 	if err := r.ParseForm(); err != nil {
 		respondWith(w, http.StatusInternalServerError, err.Error())
 		return
@@ -46,16 +47,16 @@ func handleWs(rep Reporter, renderer render.Renderer, w http.ResponseWriter, r *
 			return
 		}
 	}
-	handleWebsocket(w, r, rep, renderer, loop)
+	handleWebsocket(ctx, w, r, rep, renderer, loop)
 }
 
 // Individual nodes.
-func handleNode(rep Reporter, renderer render.Renderer, w http.ResponseWriter, r *http.Request) {
+func handleNode(ctx context.Context, rep Reporter, renderer render.Renderer, w http.ResponseWriter, r *http.Request) {
 	var (
 		vars     = mux.Vars(r)
 		nodeID   = vars["id"]
-		rpt      = rep.Report()
-		node, ok = renderer.Render(rep.Report())[nodeID]
+		rpt      = rep.Report(ctx)
+		node, ok = renderer.Render(rep.Report(ctx))[nodeID]
 	)
 	if !ok {
 		http.NotFound(w, r)
@@ -69,6 +70,7 @@ var upgrader = websocket.Upgrader{
 }
 
 func handleWebsocket(
+	ctx context.Context,
 	w http.ResponseWriter,
 	r *http.Request,
 	rep Reporter,
@@ -97,11 +99,11 @@ func handleWebsocket(
 		tick         = time.Tick(loop)
 		wait         = make(chan struct{}, 1)
 	)
-	rep.WaitOn(wait)
-	defer rep.UnWait(wait)
+	rep.WaitOn(ctx, wait)
+	defer rep.UnWait(ctx, wait)
 
 	for {
-		newTopo := renderer.Render(rep.Report()).Prune()
+		newTopo := renderer.Render(rep.Report(ctx)).Prune()
 		diff := render.TopoDiff(previousTopo, newTopo)
 		previousTopo = newTopo
 

@@ -1,6 +1,8 @@
 package multitenant
 
 import (
+	"golang.org/x/net/context"
+
 	"github.com/weaveworks/scope/app"
 	"github.com/weaveworks/scope/report"
 )
@@ -15,12 +17,12 @@ func NewDynamoDBCollector(url string) app.Collector {
 	return &dynamoDBCollector{}
 }
 
-func (c *dynamoDBCollector) Report() report.Report {
+func (c *dynamoDBCollector) Report(context.Context) report.Report {
 	return report.Report{}
 }
 
-func (c *dynamoDBCollector) WaitOn(chan struct{}) {}
+func (c *dynamoDBCollector) WaitOn(context.Context, chan struct{}) {}
 
-func (c *dynamoDBCollector) UnWait(chan struct{}) {}
+func (c *dynamoDBCollector) UnWait(context.Context, chan struct{}) {}
 
-func (c *dynamoDBCollector) Add(report.Report) {}
+func (c *dynamoDBCollector) Add(context.Context, report.Report) {}

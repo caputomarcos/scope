@@ -10,6 +10,7 @@ import (
 
 	"github.com/PuerkitoBio/ghost/handlers"
 	"github.com/gorilla/mux"
+	"golang.org/x/net/context"
 
 	"github.com/weaveworks/scope/common/hostname"
 	"github.com/weaveworks/scope/report"
@@ -23,6 +24,19 @@ var (
 	// UniqueID - set at runtime.
 	UniqueID = "0"
 )
+
+// RequestCtxKey is key used for request entry in context
+const RequestCtxKey = "request"
+
+// CtxHandlerFunc is a http.HandlerFunc, with added contexts
+type CtxHandlerFunc func(context.Context, http.ResponseWriter, *http.Request)
+
+func requestContextDecorator(f CtxHandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(context.Background(), RequestCtxKey, r)
+		f(ctx, w, r)
+	}
+}
 
 // URLMatcher uses request.RequestURI (the raw, unparsed request) to attempt
 // to match pattern.  It does this as go's URL.Parse method is broken, and
@@ -62,21 +76,21 @@ func gzipHandler(h http.HandlerFunc) http.HandlerFunc {
 // RegisterTopologyRoutes registers the various topology routes with a http mux.
 func RegisterTopologyRoutes(c Reporter, router *mux.Router) {
 	get := router.Methods("GET").Subrouter()
-	get.HandleFunc("/api", gzipHandler(apiHandler))
-	get.HandleFunc("/api/topology", gzipHandler(topologyRegistry.makeTopologyList(c)))
+	get.HandleFunc("/api", gzipHandler(requestContextDecorator(apiHandler)))
+	get.HandleFunc("/api/topology", gzipHandler(requestContextDecorator(topologyRegistry.makeTopologyList(c))))
 	get.HandleFunc("/api/topology/{topology}",
-		gzipHandler(topologyRegistry.captureRenderer(c, handleTopology)))
+		gzipHandler(requestContextDecorator(topologyRegistry.captureRenderer(c, handleTopology))))
 	get.HandleFunc("/api/topology/{topology}/ws",
-		topologyRegistry.captureRenderer(c, handleWs)) // NB not gzip!
+		requestContextDecorator(topologyRegistry.captureRenderer(c, handleWs))) // NB not gzip!
 	get.MatcherFunc(URLMatcher("/api/topology/{topology}/{id}")).HandlerFunc(
-		gzipHandler(topologyRegistry.captureRendererWithoutFilters(c, handleNode)))
-	get.HandleFunc("/api/report", gzipHandler(makeRawReportHandler(c)))
+		gzipHandler(requestContextDecorator(topologyRegistry.captureRendererWithoutFilters(c, handleNode))))
+	get.HandleFunc("/api/report", gzipHandler(requestContextDecorator(makeRawReportHandler(c))))
 }
 
 // RegisterReportPostHandler registers the handler for report submission
 func RegisterReportPostHandler(a Adder, router *mux.Router) {
 	post := router.Methods("POST").Subrouter()
-	post.HandleFunc("/api/report", func(w http.ResponseWriter, r *http.Request) {
+	post.HandleFunc("/api/report", requestContextDecorator(func(ctx context.Context, w http.ResponseWriter, r *http.Request) {
 		var (
 			rpt    report.Report
 			reader = r.Body
@@ -98,15 +112,15 @@ func RegisterReportPostHandler(a Adder, router *mux.Router) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		a.Add(rpt)
+		a.Add(ctx, rpt)
 		if len(rpt.Pod.Nodes) > 0 {
 			topologyRegistry.enableKubernetesTopologies()
 		}
 		w.WriteHeader(http.StatusOK)
-	})
+	}))
 }
 
-func apiHandler(w http.ResponseWriter, r *http.Request) {
+func apiHandler(_ context.Context, w http.ResponseWriter, r *http.Request) {
 	respondWith(w, http.StatusOK, xfer.Details{
 		ID:       UniqueID,
 		Version:  Version,
