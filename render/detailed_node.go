@@ -97,8 +97,8 @@ func MakeDetailedNode(r report.Report, n RenderableNode) DetailedNode {
 		Rank:     n.Rank,
 		Pseudo:   n.Pseudo,
 		Controls: controls(r, n),
-		Metadata: nodeMetadata(r, n),
-		Metrics:  nodeMetrics(r, n),
+		Metadata: NodeMetadata(r, n),
+		Metrics:  NodeMetrics(r, n),
 		Children: children,
 		Parents:  parents(r, n),
 	}

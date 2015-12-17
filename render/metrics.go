@@ -82,9 +82,9 @@ func toFixed(num float64, precision int) float64 {
 	return float64(int64(num*output)) / output
 }
 
-// nodeMetrics produces a table (to be consumed directly by the UI) based on
+// NodeMetrics produces a table (to be consumed directly by the UI) based on
 // an origin ID, which is (optimistically) a node ID in one of our topologies.
-func nodeMetrics(r report.Report, n RenderableNode) []MetricRow {
+func NodeMetrics(r report.Report, n RenderableNode) []MetricRow {
 	renderers := map[string]struct {
 		t report.Topology
 		r func(report.Node) []MetricRow

@@ -3,6 +3,7 @@ package fixture
 import (
 	"time"
 
+	"github.com/weaveworks/scope/probe"
 	"github.com/weaveworks/scope/probe/docker"
 	"github.com/weaveworks/scope/probe/endpoint"
 	"github.com/weaveworks/scope/probe/host"
@@ -196,24 +197,32 @@ var (
 		Process: report.Topology{
 			Nodes: report.Nodes{
 				ClientProcess1NodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:           ClientProcess1NodeID,
+					probe.Topology:     "process",
 					process.PID:        Client1PID,
 					"comm":             Client1Comm,
 					docker.ContainerID: ClientContainerID,
 					report.HostNodeID:  ClientHostNodeID,
 				}),
 				ClientProcess2NodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:           ClientProcess2NodeID,
+					probe.Topology:     "process",
 					process.PID:        Client2PID,
 					"comm":             Client2Comm,
 					docker.ContainerID: ClientContainerID,
 					report.HostNodeID:  ClientHostNodeID,
 				}),
 				ServerProcessNodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:           ServerProcessNodeID,
+					probe.Topology:     "process",
 					process.PID:        ServerPID,
 					"comm":             ServerComm,
 					docker.ContainerID: ServerContainerID,
 					report.HostNodeID:  ServerHostNodeID,
 				}),
 				NonContainerProcessNodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:          NonContainerProcessNodeID,
+					probe.Topology:    "process",
 					process.PID:       NonContainerPID,
 					"comm":            NonContainerComm,
 					report.HostNodeID: ServerHostNodeID,
@@ -223,6 +232,8 @@ var (
 		Container: report.Topology{
 			Nodes: report.Nodes{
 				ClientContainerNodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:                                      ClientContainerNodeID,
+					probe.Topology:                                "container",
 					docker.ContainerID:                            ClientContainerID,
 					docker.ContainerName:                          "client",
 					docker.ImageID:                                ClientContainerImageID,
@@ -230,8 +241,11 @@ var (
 					docker.LabelPrefix + "io.kubernetes.pod.name": ClientPodID,
 				}).WithLatest(docker.ContainerState, Now, docker.StateRunning),
 				ServerContainerNodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:                                                ServerContainerNodeID,
+					probe.Topology:                                          "container",
 					docker.ContainerID:                                      ServerContainerID,
 					docker.ContainerName:                                    "task-name-5-server-aceb93e2f2b797caba01",
+					docker.ContainerState:                                   "running",
 					docker.ImageID:                                          ServerContainerImageID,
 					report.HostNodeID:                                       ServerHostNodeID,
 					docker.LabelPrefix + render.AmazonECSContainerNameLabel: "server",
@@ -291,6 +305,8 @@ var (
 		Host: report.Topology{
 			Nodes: report.Nodes{
 				ClientHostNodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:          ClientHostNodeID,
+					probe.Topology:    "host",
 					"host_name":       ClientHostName,
 					"os":              "Linux",
 					report.HostNodeID: ClientHostNodeID,
@@ -302,6 +318,8 @@ var (
 					host.Load15: LoadMetric,
 				}),
 				ServerHostNodeID: report.MakeNodeWith(map[string]string{
+					probe.ID:          ServerHostNodeID,
+					probe.Topology:    "host",
 					"host_name":       ServerHostName,
 					"os":              "Linux",
 					report.HostNodeID: ServerHostNodeID,

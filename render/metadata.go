@@ -22,12 +22,13 @@ var (
 	containerNodeMetadata = renderMetadata([]MetadataRow{
 		{ID: docker.ContainerID, Label: "ID"},
 		{ID: docker.ImageID, Label: "Image ID"},
+		{ID: docker.ContainerState, Label: "State"},
 		{ID: docker.ContainerPorts, Label: "Ports"},
 		{ID: docker.ContainerCreated, Label: "Created"},
 		{ID: docker.ContainerCommand, Label: "Command"},
 		{ID: overlay.WeaveMACAddress, Label: "Weave MAC"},
 		{ID: overlay.WeaveDNSHostname, Label: "Weave DNS Hostname"},
-	})
+	}, getDockerLabelRows)
 	containerImageNodeMetadata = renderMetadata([]MetadataRow{
 		{ID: docker.ImageID, Label: "Image ID"},
 	})
@@ -37,6 +38,7 @@ var (
 		{ID: kubernetes.PodCreated, Label: "Created"},
 	})
 	hostNodeMetadata = renderMetadata([]MetadataRow{
+		{ID: host.HostName, Label: "Hostname"},
 		{ID: host.OS, Label: "Operating system"},
 		{ID: host.KernelVersion, Label: "Kernel version"},
 		{ID: host.Uptime, Label: "Uptime"},
@@ -49,9 +51,9 @@ type MetadataRow struct {
 	Value string `json:"value"`
 }
 
-// nodeMetadata produces a table (to be consumed directly by the UI) based on
+// NodeMetadata produces a table (to be consumed directly by the UI) based on
 // an origin ID, which is (optimistically) a node ID in one of our topologies.
-func nodeMetadata(r report.Report, n RenderableNode) []MetadataRow {
+func NodeMetadata(r report.Report, n RenderableNode) []MetadataRow {
 	renderers := map[string]struct {
 		t report.Topology
 		r func(report.Node) []MetadataRow
@@ -70,7 +72,7 @@ func nodeMetadata(r report.Report, n RenderableNode) []MetadataRow {
 	return nil
 }
 
-func renderMetadata(templates []MetadataRow) func(report.Node) []MetadataRow {
+func renderMetadata(templates []MetadataRow, extras ...func(report.Node) []MetadataRow) func(report.Node) []MetadataRow {
 	return func(nmd report.Node) []MetadataRow {
 		rows := []MetadataRow{}
 		for _, tuple := range templates {
@@ -78,8 +80,9 @@ func renderMetadata(templates []MetadataRow) func(report.Node) []MetadataRow {
 				rows = append(rows, MetadataRow{ID: tuple.ID, Label: tuple.Label, Value: val})
 			}
 		}
-		// TODO(paulbellamy): Is this something we always want to do? revisit this.
-		// rows = append(rows, getDockerLabelRows(nmd)...)
+		for _, extra := range extras {
+			rows = append(rows, extra(nmd)...)
+		}
 		return rows
 	}
 }
@@ -94,7 +97,7 @@ func getDockerLabelRows(nmd report.Node) []MetadataRow {
 	}
 	sort.Strings(labelKeys)
 	for _, labelKey := range labelKeys {
-		rows = append(rows, MetadataRow{ID: labelKey, Label: fmt.Sprintf("Label %q", labelKey), Value: labels[labelKey]})
+		rows = append(rows, MetadataRow{ID: "label_" + labelKey, Label: fmt.Sprintf("Label %q", labelKey), Value: labels[labelKey]})
 	}
 	return rows
 }

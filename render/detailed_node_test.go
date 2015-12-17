@@ -10,238 +10,171 @@ import (
 	"github.com/weaveworks/scope/test/fixture"
 )
 
-func TestOriginTable(t *testing.T) {
-	if _, ok := render.OriginTable(fixture.Report, "not-found", false, false); ok {
-		t.Errorf("unknown origin ID gave unexpected success")
-	}
-	for originID, want := range map[string]render.Table{
-		fixture.ServerProcessNodeID: {
-			Title:   fmt.Sprintf(`Process "apache" (%s)`, fixture.ServerPID),
-			Numeric: false,
-			Rank:    2,
-			Rows:    []render.Row{},
-		},
-		fixture.ServerHostNodeID: {
-			Title:   fmt.Sprintf("Host %q", fixture.ServerHostName),
-			Numeric: false,
-			Rank:    1,
-			Rows: []render.Row{
-				{Key: "Load (1m)", ValueMajor: "0.01", Metric: &fixture.LoadMetric, ValueType: "sparkline"},
-				{Key: "Load (5m)", ValueMajor: "0.01", Metric: &fixture.LoadMetric, ValueType: "sparkline"},
-				{Key: "Load (15m)", ValueMajor: "0.01", Metric: &fixture.LoadMetric, ValueType: "sparkline"},
-				{Key: "Operating system", ValueMajor: "Linux"},
-			},
-		},
-	} {
-		have, ok := render.OriginTable(fixture.Report, originID, false, false)
-		if !ok {
-			t.Errorf("%q: not OK", originID)
-			continue
-		}
-		if !reflect.DeepEqual(want, have) {
-			t.Errorf("%q: %s", originID, test.Diff(want, have))
-		}
-	}
-
-	// Test host/container tags
-	for originID, want := range map[string]render.Table{
-		fixture.ServerProcessNodeID: {
-			Title:   fmt.Sprintf(`Process "apache" (%s)`, fixture.ServerPID),
-			Numeric: false,
-			Rank:    2,
-			Rows: []render.Row{
-				{Key: "Host", ValueMajor: fixture.ServerHostID},
-				{Key: "Container ID", ValueMajor: fixture.ServerContainerID},
-			},
-		},
-		fixture.ServerContainerNodeID: {
-			Title:   `Container "server"`,
-			Numeric: false,
-			Rank:    3,
-			Rows: []render.Row{
-				{Key: "Host", ValueMajor: fixture.ServerHostID},
-				{Key: "State", ValueMajor: "running"},
-				{Key: "ID", ValueMajor: fixture.ServerContainerID},
-				{Key: "Image ID", ValueMajor: fixture.ServerContainerImageID},
-				{Key: fmt.Sprintf(`Label %q`, render.AmazonECSContainerNameLabel), ValueMajor: `server`},
-				{Key: `Label "foo1"`, ValueMajor: `bar1`},
-				{Key: `Label "foo2"`, ValueMajor: `bar2`},
-				{Key: `Label "io.kubernetes.pod.name"`, ValueMajor: "ping/pong-b"},
-			},
-		},
-	} {
-		have, ok := render.OriginTable(fixture.Report, originID, true, true)
-		if !ok {
-			t.Errorf("%q: not OK", originID)
-			continue
-		}
-		if !reflect.DeepEqual(want, have) {
-			t.Errorf("%q: %s", originID, test.Diff(want, have))
-		}
-	}
-}
-
 func TestMakeDetailedHostNode(t *testing.T) {
 	renderableNode := render.HostRenderer.Render(fixture.Report)[render.MakeHostID(fixture.ClientHostID)]
 	have := render.MakeDetailedNode(fixture.Report, renderableNode)
 	want := render.DetailedNode{
-		ID:         render.MakeHostID(fixture.ClientHostID),
-		LabelMajor: "client",
-		LabelMinor: "hostname.com",
-		Rank:       "hostname.com",
-		Pseudo:     false,
-		Controls:   []render.ControlInstance{},
-		Tables: []render.Table{
+		ID:       render.MakeHostID(fixture.ClientHostID),
+		Label:    "client",
+		Rank:     "hostname.com",
+		Pseudo:   false,
+		Controls: []render.ControlInstance{},
+		Metadata: []render.MetadataRow{
 			{
-				Title:   fmt.Sprintf("Host %q", fixture.ClientHostName),
-				Numeric: false,
-				Rank:    1,
-				Rows: []render.Row{
-					{
-						Key:        "Load (1m)",
-						ValueMajor: "0.01",
-						Metric:     &fixture.LoadMetric,
-						ValueType:  "sparkline",
-					},
-					{
-						Key:        "Load (5m)",
-						ValueMajor: "0.01",
-						Metric:     &fixture.LoadMetric,
-						ValueType:  "sparkline",
-					},
-					{
-						Key:        "Load (15m)",
-						ValueMajor: "0.01",
-						Metric:     &fixture.LoadMetric,
-						ValueType:  "sparkline",
-					},
-					{
-						Key:        "Operating system",
-						ValueMajor: "Linux",
-					},
-				},
+				ID:    "host_name",
+				Label: "Hostname",
+				Value: "client.hostname.com",
 			},
 			{
-				Title:   "Connections",
-				Numeric: false,
-				Rank:    0,
-				Rows: []render.Row{
-					{
-						Key:        "TCP connections",
-						ValueMajor: "3",
-					},
-					{
-						Key:        "Client",
-						ValueMajor: "Server",
-						Expandable: true,
-					},
-					{
-						Key:        "10.10.10.20",
-						ValueMajor: "192.168.1.1",
-						Expandable: true,
-					},
-				},
+				ID:    "os",
+				Label: "Operating system",
+				Value: "Linux",
 			},
 		},
+		Metrics: []render.MetricRow{
+			{
+				ID:     "load1",
+				Group:  "load",
+				Label:  "Load (1m)",
+				Value:  0.01,
+				Metric: &fixture.LoadMetric,
+			},
+			{
+				ID:     "load5",
+				Group:  "load",
+				Label:  "Load (5m)",
+				Value:  0.01,
+				Metric: &fixture.LoadMetric,
+			},
+			{
+				ID:     "load15",
+				Label:  "Load (15m)",
+				Group:  "load",
+				Value:  0.01,
+				Metric: &fixture.LoadMetric,
+			},
+		},
+		Children: []render.NodeSummaryGroup{},
+		Parents:  []render.Parent{},
+		/*
+				Connections: []render.MetadataRow{
+						{
+					Title:   "Connections",
+					Numeric: false,
+					Rank:    0,
+					Rows: []render.Row{
+						{
+							Key:        "TCP connections",
+							Value: "3",
+						},
+						{
+							Key:        "Client",
+							Value: "Server",
+							Expandable: true,
+						},
+						{
+							Key:        "10.10.10.20",
+							Value: "192.168.1.1",
+							Expandable: true,
+						},
+					},
+				},
+			},
+		*/
 	}
 	if !reflect.DeepEqual(want, have) {
-		t.Errorf("%s", test.Diff(want, have))
+		t.Errorf("%s\nwant %#v\nhave %#v", test.Diff(want, have), want, have)
 	}
 }
 
 func TestMakeDetailedContainerNode(t *testing.T) {
-	renderableNode := render.ContainerRenderer.Render(fixture.Report)[fixture.ServerContainerID]
+	id := render.MakeContainerID(fixture.ServerContainerID)
+	renderableNode, ok := render.ContainerRenderer.Render(fixture.Report)[id]
+	if !ok {
+		t.Fatalf("Node not found: %s", id)
+	}
 	have := render.MakeDetailedNode(fixture.Report, renderableNode)
 	want := render.DetailedNode{
-		ID:         fixture.ServerContainerID,
-		LabelMajor: "server",
-		LabelMinor: fixture.ServerHostName,
-		Rank:       "imageid456",
-		Pseudo:     false,
-		Controls:   []render.ControlInstance{},
-		Tables: []render.Table{
+		ID:       id,
+		Label:    "server",
+		Rank:     "imageid456",
+		Pseudo:   false,
+		Controls: []render.ControlInstance{},
+		Metadata: []render.MetadataRow{
+			{ID: "docker_container_id", Label: "ID", Value: fixture.ServerContainerID},
+			{ID: "docker_image_id", Label: "Image ID", Value: fixture.ServerContainerImageID},
+			{ID: "docker_container_state", Label: "State", Value: "running"},
+			{ID: "label_" + render.AmazonECSContainerNameLabel, Label: fmt.Sprintf(`Label %q`, render.AmazonECSContainerNameLabel), Value: `server`},
+			{ID: "label_foo1", Label: `Label "foo1"`, Value: `bar1`},
+			{ID: "label_foo2", Label: `Label "foo2"`, Value: `bar2`},
+			{ID: "label_io.kubernetes.pod.name", Label: `Label "io.kubernetes.pod.name"`, Value: "ping/pong-b"},
+		},
+		Metrics: []render.MetricRow{},
+		Children: []render.NodeSummaryGroup{
 			{
-				Title:   `Container Image "image/server"`,
-				Numeric: false,
-				Rank:    4,
-				Rows: []render.Row{
-					{Key: "Image ID", ValueMajor: fixture.ServerContainerImageID},
-					{Key: `Label "foo1"`, ValueMajor: `bar1`},
-					{Key: `Label "foo2"`, ValueMajor: `bar2`},
-				},
-			},
-			{
-				Title:   `Container "server"`,
-				Numeric: false,
-				Rank:    3,
-				Rows: []render.Row{
-					{Key: "State", ValueMajor: "running"},
-					{Key: "ID", ValueMajor: fixture.ServerContainerID},
-					{Key: "Image ID", ValueMajor: fixture.ServerContainerImageID},
-					{Key: fmt.Sprintf(`Label %q`, render.AmazonECSContainerNameLabel), ValueMajor: `server`},
-					{Key: `Label "foo1"`, ValueMajor: `bar1`},
-					{Key: `Label "foo2"`, ValueMajor: `bar2`},
-					{Key: `Label "io.kubernetes.pod.name"`, ValueMajor: "ping/pong-b"},
-				},
-			},
-			{
-				Title:   fmt.Sprintf(`Process "apache" (%s)`, fixture.ServerPID),
-				Numeric: false,
-				Rank:    2,
-				Rows:    []render.Row{},
-			},
-			{
-				Title:   fmt.Sprintf("Host %q", fixture.ServerHostName),
-				Numeric: false,
-				Rank:    1,
-				Rows: []render.Row{
-					{Key: "Load (1m)", ValueMajor: "0.01", Metric: &fixture.LoadMetric, ValueType: "sparkline"},
-					{Key: "Load (5m)", ValueMajor: "0.01", Metric: &fixture.LoadMetric, ValueType: "sparkline"},
-					{Key: "Load (15m)", ValueMajor: "0.01", Metric: &fixture.LoadMetric, ValueType: "sparkline"},
-					{Key: "Operating system", ValueMajor: "Linux"},
-				},
-			},
-			{
-				Title:   "Connections",
-				Numeric: false,
-				Rank:    0,
-				Rows: []render.Row{
-					{Key: "Ingress packet rate", ValueMajor: "105", ValueMinor: "packets/sec"},
-					{Key: "Ingress byte rate", ValueMajor: "1.0", ValueMinor: "KBps"},
-					{Key: "Client", ValueMajor: "Server", Expandable: true},
+				Label:      "Applications",
+				TopologyID: "applications",
+				Nodes: []render.NodeSummary{
 					{
-						Key:        fmt.Sprintf("%s:%s", fixture.UnknownClient1IP, fixture.UnknownClient1Port),
-						ValueMajor: fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
-						Expandable: true,
-					},
-					{
-						Key:        fmt.Sprintf("%s:%s", fixture.UnknownClient2IP, fixture.UnknownClient2Port),
-						ValueMajor: fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
-						Expandable: true,
-					},
-					{
-						Key:        fmt.Sprintf("%s:%s", fixture.UnknownClient3IP, fixture.UnknownClient3Port),
-						ValueMajor: fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
-						Expandable: true,
-					},
-					{
-						Key:        fmt.Sprintf("%s:%s", fixture.ClientIP, fixture.ClientPort54001),
-						ValueMajor: fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
-						Expandable: true,
-					},
-					{
-						Key:        fmt.Sprintf("%s:%s", fixture.ClientIP, fixture.ClientPort54002),
-						ValueMajor: fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
-						Expandable: true,
-					},
-					{
-						Key:        fmt.Sprintf("%s:%s", fixture.RandomClientIP, fixture.RandomClientPort),
-						ValueMajor: fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
-						Expandable: true,
+						ID:       fmt.Sprintf("process:%s:%s", "server.hostname.com", fixture.ServerPID),
+						Label:    "apache",
+						Metadata: []render.MetadataRow{},
+						Metrics:  []render.MetricRow{},
 					},
 				},
 			},
 		},
+		Parents: []render.Parent{
+			{
+				ID:         render.MakeHostID(fixture.ServerHostName),
+				Label:      fixture.ServerHostName,
+				TopologyID: "hosts",
+			},
+		},
+		/*
+			Connections: []render.MetadataRow{
+				{
+					Title:   "Connections",
+					Numeric: false,
+					Rank:    0,
+					Rows: []render.Row{
+						{Key: "Ingress packet rate", Value: "105", ValueMinor: "packets/sec"},
+						{Key: "Ingress byte rate", Value: "1.0", ValueMinor: "KBps"},
+						{Key: "Client", Value: "Server", Expandable: true},
+						{
+							Key:        fmt.Sprintf("%s:%s", fixture.UnknownClient1IP, fixture.UnknownClient1Port),
+							Value:      fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
+							Expandable: true,
+						},
+						{
+							Key:        fmt.Sprintf("%s:%s", fixture.UnknownClient2IP, fixture.UnknownClient2Port),
+							Value:      fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
+							Expandable: true,
+						},
+						{
+							Key:        fmt.Sprintf("%s:%s", fixture.UnknownClient3IP, fixture.UnknownClient3Port),
+							Value:      fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
+							Expandable: true,
+						},
+						{
+							Key:        fmt.Sprintf("%s:%s", fixture.ClientIP, fixture.ClientPort54001),
+							Value:      fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
+							Expandable: true,
+						},
+						{
+							Key:        fmt.Sprintf("%s:%s", fixture.ClientIP, fixture.ClientPort54002),
+							Value:      fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
+							Expandable: true,
+						},
+						{
+							Key:        fmt.Sprintf("%s:%s", fixture.RandomClientIP, fixture.RandomClientPort),
+							Value:      fmt.Sprintf("%s:%s", fixture.ServerIP, fixture.ServerPort),
+							Expandable: true,
+						},
+					},
+				},
+			},
+		*/
 	}
 	if !reflect.DeepEqual(want, have) {
 		t.Errorf("%s", test.Diff(want, have))

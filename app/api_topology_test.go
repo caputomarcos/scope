@@ -13,7 +13,6 @@ import (
 	"github.com/weaveworks/scope/render"
 	"github.com/weaveworks/scope/render/expected"
 	"github.com/weaveworks/scope/test"
-	"github.com/weaveworks/scope/test/fixture"
 )
 
 func TestAll(t *testing.T) {
@@ -82,8 +81,7 @@ func TestAPITopologyApplications(t *testing.T) {
 			t.Fatal(err)
 		}
 		equals(t, expected.ServerProcessID, node.Node.ID)
-		equals(t, "apache", node.Node.LabelMajor)
-		equals(t, fmt.Sprintf("%s (server:%s)", fixture.ServerHostID, fixture.ServerPID), node.Node.LabelMinor)
+		equals(t, "apache", node.Node.Label)
 		equals(t, false, node.Node.Pseudo)
 		// Let's not unit-test the specific content of the detail tables
 	}
@@ -111,8 +109,7 @@ func TestAPITopologyHosts(t *testing.T) {
 			t.Fatal(err)
 		}
 		equals(t, expected.ServerHostRenderedID, node.Node.ID)
-		equals(t, "server", node.Node.LabelMajor)
-		equals(t, "hostname.com", node.Node.LabelMinor)
+		equals(t, "server", node.Node.Label)
 		equals(t, false, node.Node.Pseudo)
 		// Let's not unit-test the specific content of the detail tables
 	}

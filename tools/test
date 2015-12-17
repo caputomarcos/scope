@@ -21,10 +21,6 @@ while [ $# -gt 0 ]; do
             NO_GO_GET=true
             shift 1
             ;;
-        *)
-            usage
-            exit 2
-            ;;
     esac
 done
 
@@ -46,7 +42,11 @@ fi
 
 fail=0
 
-TESTDIRS=$(find . -type f -name '*_test.go' | xargs -n1 dirname | grep -vE '^\./(\.git|vendor|prog|experimental)/' | sort -u)
+if [ "$#" -eq 0 ]; then
+  TESTDIRS=$(find . -type f -name '*_test.go' | xargs -n1 dirname | grep -vE '^\./(\.git|vendor|prog|experimental)/' | sort -u)
+else
+  TESTDIRS="$@"
+fi
 
 # If running on circle, use the scheduler to work out what tests to run on what shard
 if [ -n "$CIRCLECI" -a -z "$NO_SCHEDULER" -a -x "$DIR/sched" ]; then
