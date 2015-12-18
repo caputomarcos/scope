@@ -130,11 +130,8 @@ export function enterNode(nodeId) {
 }
 
 export function hitEsc() {
-  // Dont deselect node on ESC if there is a controlPipe (keep terminal open)
-  if (AppStore.getSelectedNodeId() && !AppStore.getControlPipe()) {
-    AppDispatcher.dispatch({type: ActionTypes.DESELECT_NODE});
-    updateRoute();
-  }
+  AppDispatcher.dispatch({type: ActionTypes.DESELECT_NODE});
+  updateRoute();
 }
 
 export function leaveEdge(edgeId) {

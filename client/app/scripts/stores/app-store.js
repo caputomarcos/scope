@@ -344,6 +344,11 @@ export class AppStore extends Store {
       this.__emitChange();
       break;
 
+    case ActionTypes.DESELECT_NODE:
+      popNodeDetails();
+      this.__emitChange();
+      break;
+
     case ActionTypes.DO_CONTROL:
       controlPending = true;
       controlError = null;
@@ -357,11 +362,6 @@ export class AppStore extends Store {
 
     case ActionTypes.ENTER_NODE:
       mouseOverNodeId = payload.nodeId;
-      this.__emitChange();
-      break;
-
-    case ActionTypes.DESELECT_NODE:
-      selectedNodeId = null;
       this.__emitChange();
       break;
 

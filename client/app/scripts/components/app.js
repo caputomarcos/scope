@@ -65,7 +65,10 @@ export default class App extends React.Component {
 
   onKeyPress(ev) {
     if (ev.keyCode === ESC_KEY_CODE) {
-      hitEsc();
+      // Ignore ESC if there is a controlPipe (keep terminal open)
+      if (this.state.nodeDetails.size > 0 && !this.state.controlPipe) {
+        hitEsc();
+      }
     }
   }
 
