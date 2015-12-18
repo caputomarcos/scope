@@ -6,10 +6,22 @@ import NodeDetailsHealth from './node-details/node-details-health';
 import NodeDetailsInfo from './node-details/node-details-info';
 import NodeDetailsRelatives from './node-details/node-details-relatives';
 import NodeDetailsTable from './node-details/node-details-table';
+import { clickCloseDetails } from '../actions/app-actions';
 import { brightenColor, getNodeColorDark } from '../utils/color-utils';
 import { resetDocumentTitle, setDocumentTitle } from '../utils/title-utils';
 
 export default class NodeDetails extends React.Component {
+
+  constructor(props, context) {
+    super(props, context);
+    this.handleClickClose = this.handleClickClose.bind(this);
+  }
+
+  handleClickClose(ev) {
+    ev.preventDefault();
+    clickCloseDetails();
+  }
+
   componentDidMount() {
     this.updateTitle();
   }
@@ -18,9 +30,20 @@ export default class NodeDetails extends React.Component {
     resetDocumentTitle();
   }
 
+  renderTools() {
+    return (
+      <div className="node-details-tools-wrapper">
+        <div className="node-details-tools">
+          <span className="fa fa-close" onClick={this.handleClickClose} />
+        </div>
+      </div>
+    );
+  }
+
   renderLoading() {
     const node = this.props.nodes.get(this.props.nodeId);
     const nodeColor = getNodeColorDark(node.get('rank'), node.get('label_major'));
+    const tools = this.renderTools();
     const styles = {
       header: {
         'backgroundColor': nodeColor
@@ -29,6 +52,7 @@ export default class NodeDetails extends React.Component {
 
     return (
       <div className="node-details">
+        {tools}
         <div className="node-details-header" style={styles.header}>
           <div className="node-details-header-wrapper">
             <h2 className="node-details-header-label truncate">
@@ -49,8 +73,10 @@ export default class NodeDetails extends React.Component {
   }
 
   renderNotAvailable() {
+    const tools = this.renderTools();
     return (
       <div className="node-details">
+        {tools}
         <div className="node-details-header node-details-header-notavailable">
           <div className="node-details-header-wrapper">
             <h2 className="node-details-header-label">
@@ -94,6 +120,7 @@ export default class NodeDetails extends React.Component {
   renderDetails() {
     const details = this.props.details;
     const nodeColor = getNodeColorDark(details.rank, details.label_major);
+    const tools = this.renderTools();
     const styles = {
       controls: {
         'backgroundColor': brightenColor(nodeColor)
@@ -116,6 +143,7 @@ export default class NodeDetails extends React.Component {
 
     return (
       <div className="node-details">
+        {tools}
         <div className="node-details-header" style={styles.header}>
           <div className="node-details-header-wrapper">
             <h2 className="node-details-header-label truncate" title={details.label}>

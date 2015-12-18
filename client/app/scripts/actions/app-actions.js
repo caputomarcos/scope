@@ -26,7 +26,7 @@ export function changeTopologyOption(option, value, topologyId) {
     AppStore.getActiveTopologyOptions()
   );
   getNodeDetails(
-    AppStore.getCurrentTopologyUrl(),
+    AppStore.getTopologyUrlsById(),
     AppStore.getNodeDetails()
   );
 }
@@ -56,7 +56,7 @@ export function clickNode(nodeId) {
   });
   updateRoute();
   getNodeDetails(
-    AppStore.getCurrentTopologyUrl(),
+    AppStore.getTopologyUrlsById(),
     AppStore.getNodeDetails()
   );
 }
@@ -69,7 +69,7 @@ export function clickRelative(nodeId, topologyId) {
   });
   updateRoute();
   getNodeDetails(
-    AppStore.getCurrentTopologyUrl(),
+    AppStore.getTopologyUrlsById(),
     AppStore.getNodeDetails()
   );
 }
@@ -81,7 +81,7 @@ export function clickTopology(topologyId) {
   });
   updateRoute();
   getNodesDelta(
-    AppStore.getCurrentTopologyUrl(),
+    AppStore.getTopologyUrlsById(),
     AppStore.getActiveTopologyOptions()
   );
 }
@@ -188,7 +188,7 @@ export function receiveTopologies(topologies) {
     AppStore.getActiveTopologyOptions()
   );
   getNodeDetails(
-    AppStore.getCurrentTopologyUrl(),
+    AppStore.getTopologyUrlsById(),
     AppStore.getNodeDetails()
   );
 }
@@ -260,7 +260,7 @@ export function route(state) {
     AppStore.getActiveTopologyOptions()
   );
   getNodeDetails(
-    AppStore.getCurrentTopologyUrl(),
+    AppStore.getTopologyUrlsById(),
     AppStore.getNodeDetails()
   );
 }

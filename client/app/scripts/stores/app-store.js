@@ -15,7 +15,7 @@ const error = debug('scope:error');
 
 // Helpers
 
-function findCurrentTopology(subTree, topologyId) {
+function findTopologyById(subTree, topologyId) {
   let foundTopology;
 
   _.each(subTree, function(topology) {
@@ -23,7 +23,7 @@ function findCurrentTopology(subTree, topologyId) {
       foundTopology = topology;
     }
     if (!foundTopology) {
-      foundTopology = findCurrentTopology(topology.sub_topologies, topologyId);
+      foundTopology = findTopologyById(topology.sub_topologies, topologyId);
     }
     if (foundTopology) {
       return false;
@@ -62,14 +62,17 @@ let nodes = makeOrderedMap(); // nodeId -> node
 let selectedNodeId = null;
 let topologies = [];
 let topologiesLoaded = false;
+let topologyUrlsById = makeOrderedMap(); // topologyId -> topologyUrl
 let routeSet = false;
 let controlPipes = makeOrderedMap(); // pipeId -> controlPipe
 let websocketClosed = true;
 
+// adds ID field to topology (based on last part of URL path) and save urls in
+// map for easy lookup
 function processTopologies(topologyList) {
-  // adds ID field to topology, based on last part of URL path
   _.each(topologyList, function(topology) {
     topology.id = topology.url.split('/').pop();
+    topologyUrlsById = topologyUrlsById.set(topology.id, topology.url);
     processTopologies(topology.sub_topologies);
   });
   return topologyList;
@@ -77,7 +80,7 @@ function processTopologies(topologyList) {
 
 function setTopology(topologyId) {
   currentTopologyId = topologyId;
-  currentTopology = findCurrentTopology(topologies, topologyId);
+  currentTopology = findTopologyById(topologies, topologyId);
 }
 
 function setDefaultTopologyOptions(topologyList) {
@@ -104,7 +107,7 @@ function setDefaultTopologyOptions(topologyList) {
 
 function popNodeDetails() {
   if (nodeDetails.size > 0) {
-    const lastNodeId = nodeDetails.last().id;
+    const lastNodeId = nodeDetails.keySeq().last();
     // remove pipe if it belongs to the node being closed
     controlPipes = controlPipes.filter(pipe => {
       return pipe.nodeId !== lastNodeId;
@@ -124,7 +127,7 @@ export class AppStore extends Store {
   getAppState() {
     return {
       controlPipe: this.getControlPipe(),
-      nodeDetailIds: nodeDetails.keySeq().toJS(),
+      nodeDetails: this.getNodeDetailsState(),
       selectedNodeId: selectedNodeId,
       topologyId: currentTopologyId,
       topologyOptions: topologyOptions.toJS() // all options
@@ -225,6 +228,12 @@ export class AppStore extends Store {
     return nodeDetails;
   }
 
+  getNodeDetailsState() {
+    return nodeDetails.toIndexedSeq().map(details => {
+      return {id: details.id, topologyId: details.topologyId};
+    }).toJS();
+  }
+
   getNodes() {
     return nodes;
   }
@@ -235,6 +244,10 @@ export class AppStore extends Store {
 
   getTopologies() {
     return topologies;
+  }
+
+  getTopologyUrlsById() {
+    return topologyUrlsById;
   }
 
   getVersion() {
@@ -299,13 +312,19 @@ export class AppStore extends Store {
       popNodeDetails();
       // select new node if it's not the same (in that case just delesect)
       if (prevSelectedNodeId !== payload.nodeId) {
-        nodeDetails = nodeDetails.set(payload.nodeId, null);
+        nodeDetails = nodeDetails.set(
+          payload.nodeId,
+          {id: payload.nodeId, topologyId: currentTopologyId}
+        );
       }
       this.__emitChange();
       break;
 
     case ActionTypes.CLICK_RELATIVE:
-      nodeDetails = nodeDetails.set(payload.nodeId, null);
+      nodeDetails = nodeDetails.set(
+        payload.nodeId,
+        {id: payload.nodeId, topologyId: payload.topologyId}
+      );
       this.__emitChange();
       break;
 
@@ -401,7 +420,10 @@ export class AppStore extends Store {
       errorUrl = null;
       // disregard if node is not selected anymore
       if (nodeDetails.has(payload.details.id)) {
-        nodeDetails = nodeDetails.set(payload.details.id, payload.details);
+        nodeDetails = nodeDetails.update(payload.details.id, obj => {
+          obj.details = payload.details;
+          return obj;
+        });
       }
       this.__emitChange();
       break;
@@ -433,7 +455,9 @@ export class AppStore extends Store {
 
       // update existing nodes
       _.each(payload.delta.update, function(node) {
-        nodes = nodes.set(node.id, nodes.get(node.id).merge(makeNode(node)));
+        if (nodes.has(node.id)) {
+          nodes = nodes.set(node.id, nodes.get(node.id).merge(makeNode(node)));
+        }
       });
 
       // add new nodes
@@ -446,6 +470,7 @@ export class AppStore extends Store {
 
     case ActionTypes.RECEIVE_TOPOLOGIES:
       errorUrl = null;
+      topologyUrlsById = topologyUrlsById.clear();
       topologies = processTopologies(payload.topologies);
       setTopology(currentTopologyId);
       // only set on first load, if options are not already set via route
@@ -478,8 +503,8 @@ export class AppStore extends Store {
       } else {
         controlPipes = controlPipes.clear();
       }
-      if (payload.state.nodeDetailIds) {
-        nodeDetails = makeOrderedMap(payload.state.nodeDetailIds.map(nodeId => [nodeId, null]));
+      if (payload.state.nodeDetails) {
+        nodeDetails = makeOrderedMap(payload.state.nodeDetails.map(obj => [obj.id, obj]));
       } else {
         nodeDetails = nodeDetails.clear();
       }

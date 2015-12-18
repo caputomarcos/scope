@@ -118,10 +118,12 @@ export function getNodesDelta(topologyUrl, options) {
   }
 }
 
-export function getNodeDetails(topologyUrl, nodeMap) {
-  if (topologyUrl) {
-    nodeMap.forEach((_, nodeId) => {
-      const url = [topologyUrl, '/', encodeURIComponent(nodeId)]
+export function getNodeDetails(topologyUrlsById, nodeMap) {
+  // get details for all opened nodes
+  nodeMap.forEach(obj => {
+    if (topologyUrlsById.has(obj.topologyId)) {
+      const topologyUrl = topologyUrlsById.get(obj.topologyId);
+      const url = [topologyUrl, '/', encodeURIComponent(obj.id)]
         .join('').substr(1);
       reqwest({
         url: url,
@@ -136,8 +138,10 @@ export function getNodeDetails(topologyUrl, nodeMap) {
           }
         }
       });
-    });
-  }
+    } else {
+      log('No url found for ', obj);
+    }
+  });
 }
 
 export function getApiDetails() {
