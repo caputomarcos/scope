@@ -8,11 +8,11 @@ export default class Details extends React.Component {
     return (
       <div className="details">
         {this.props.details.toIndexedSeq().map((obj, index) => {
-          const offset = 10;
+          const offset = (420 + 12) * index;
           const style = {
-            bottom: 48 - index * offset,
-            right: 36 - index * offset,
-            top: 24 + index * offset
+            bottom: 48,
+            right: 36 + offset,
+            top: 24
           };
 
           return (
