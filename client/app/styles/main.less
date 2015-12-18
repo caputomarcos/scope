@@ -338,21 +338,35 @@ h2 {
 
 }
 
-#details {
-  position: fixed;
-  z-index: 1024;
-  display: block;
-  right: @details-window-padding-left;
-  top: 24px;
-  bottom: 48px;
-  width: @details-window-width;
+.details {
 
-  .details-wrapper {
-    height: 100%;
-    padding-bottom: 8px;
-    border-radius: 2px;
-    background-color: #fff;
-    .shadow-2;
+  &-wrapper {
+    position: fixed;
+    z-index: 1024;
+    display: flex;
+    right: @details-window-padding-left;
+    top: 24px;
+    bottom: 48px;
+    width: @details-window-width;
+    flex-direction: column;
+
+    &-row {
+      flex: 1;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-radius: 2px;
+      background-color: #fff;
+      .shadow-2;
+      overflow-y: scroll;
+
+      &:last-child {
+        margin-bottom: 0;
+      }
+
+      &-dummy {
+        visibility: hidden;
+      }
+    }
   }
 }
 
